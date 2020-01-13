@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.openactors4j</groupId>
-    <artifactId>openactors-parent</artifactId>
+    <artifactId>openactors4j-parent</artifactId>
     <version>${openactors4j.version}</version>
     <packaging>pom</packaging>
 
@@ -36,11 +36,14 @@
         <java.lib.checkstyle>8.27</java.lib.checkstyle>
         <java.lib.pmd>6.20.0</java.lib.pmd>
         <java.lib.opentracing>0.33.0</java.lib.opentracing>
+        <java.lib.junit.bom>5.5.2</java.lib.junit.bom>
     </properties>
 
     <modules>
         <module>build-tools</module>
+        <module>openactors4j-core</module>
     </modules>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -120,6 +123,13 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${java.lib.commons.lang}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${java.lib.junit.bom}</version>
+                <type>pom</type>
             </dependency>
         </dependencies>
     </dependencyManagement>
