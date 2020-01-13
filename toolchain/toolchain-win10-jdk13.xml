@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF8"?>
+<toolchains>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <version>13</version>
+            <vendor>openjdk</vendor>
+        </provides>
+        <configuration>
+            <jdkHome>C:\tools\jdk-13.0.1</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <version>13</version>
+            <vendor>oracle</vendor>
+        </provides>
+        <configuration>
+            <jdkHome>C:\Program Files\Java\jdk-13.0.1</jdkHome>
+        </configuration>
+    </toolchain>
+</toolchains>

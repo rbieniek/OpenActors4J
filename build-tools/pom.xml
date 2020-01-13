@@ -1,0 +1,41 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+    <parent>
+        <groupId>de.ccsac.lcm.oos</groupId>
+        <artifactId>oauth-openid-server</artifactId>
+        <version>${oos.version}</version>
+    </parent>
+    -->
+
+    <groupId>io.openactors4j</groupId>
+    <artifactId>build-tools</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <distributionManagement>
+        <site>
+            <id>cloud.bieniek-consulting.de</id>
+            <url>scp://repository01.management.cloud.bieniek-consulting.de/www/docs/project/</url>
+        </site>
+    </distributionManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <release>13</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.8.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
