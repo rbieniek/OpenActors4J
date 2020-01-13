@@ -4,12 +4,12 @@
 
     <groupId>io.openactors4j</groupId>
     <artifactId>openactors-parent</artifactId>
-    <version>${openactors.version}</version>
+    <version>${openactors4j.version}</version>
     <packaging>pom</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <openactors.version>0.0.1-SNAPSHOT</openactors.version>
+        <openactors4j.version>0.0.1-SNAPSHOT</openactors4j.version>
         <maven.plugin.compiler>3.8.1</maven.plugin.compiler>
         <maven.plugin.jar>3.2.0</maven.plugin.jar>
         <maven.plugin.surefire>3.0.0-M3</maven.plugin.surefire>
