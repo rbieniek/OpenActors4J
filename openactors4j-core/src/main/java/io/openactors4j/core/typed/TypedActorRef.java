@@ -3,7 +3,7 @@ package io.openactors4j.core.typed;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-public interface TypedActorRef<T, V> {
+public interface TypedActorRef<T> {
   /**
    * Obtain the full name of the actor in the context of its hosting actor system
    *
@@ -24,7 +24,7 @@ public interface TypedActorRef<T, V> {
    * @param message the message payload
    * @return a {@link CompletionStage} for asynchronously handling the response
    */
-  CompletionStage<V> ask(T message);
+  <V> CompletionStage<V> ask(T message);
 
   /**
    * Interact with the actor in a two-way messaging style
@@ -33,5 +33,5 @@ public interface TypedActorRef<T, V> {
    * @param timeout cancel further waiting for a response if this timeout expires
    * @return a {@link CompletionStage} for asynchronously handling the response
    */
-  CompletionStage<V> ask(T message, TimeUnit timeout);
+  <V> CompletionStage<V> ask(T message, TimeUnit timeout);
 }
