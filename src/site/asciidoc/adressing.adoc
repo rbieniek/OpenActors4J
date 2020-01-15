@@ -1,0 +1,3 @@
+= Adressing
+
+In an actor-based messaging system, an actor is not directly accessed.

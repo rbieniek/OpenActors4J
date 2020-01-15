@@ -1,0 +1,38 @@
+= Project introduction
+
+This project aims to the fast and compact implementation of the actor processing model.
+
+== Fundamentals
+Originally, the actor model was laid out by Carl Hewitt in his reseach paper <<ACTOR>> in 1977.
+Some refinements were given by Carl Hewitt in his research paper <<ROBUST>> in 2017.
+
+An actor is a computational entity for processing messages. In response to a received message, it can take the
+following actions:
+
+* send a finite number of messages to other actors
+* spwan a finite number of new actors
+* define the behavior for the next message it receives
+
+There is no restriction on the order or parallelism on the actions taken in response to a message.
+
+== Module overview
+The project consists of a couple of modules:
+
+* _build-tools_: Bundles all er-project configurations for *checkstyle*, *PMD*, and *spobugs*
+* _openactors4j-core_: Core aspects of the implementation
+
+== Topics overview
+
+* For a general overview of messaging styles and message processing, see <<message-processing.adoc#,Messaging>>
+* The adressing scheme for actors is explained here <<adressing.adoc#,Actor adressing>>
+* For information about actor relationship and supervision, see <<hierarchy.adoc#,Hierachy>>
+* The lifecycle of an actor is described here <<lifecycle.adoc#,Lifecycle>>
+
+[bibliography]
+== References
+
+* [[[ACTOR]]] A Universal Modular ACTOR Formalism for Artificial Intelligence, Carl Hewitt,
+Peter Bishop, Richard Steiger https://www.ijcai.org/Proceedings/73/Papers/027B.pdf[ACTOR]
+* [[[ROBUST]]] Carl Hewitt. Actor Model of Computation for Scalable Robust Information Systems: One IoT is
+No IoT1. Symposium on Logic and Collaboration for Intelligent Applications„ Mar 2017, Stanford,
+United States. https://hal.archives-ouvertes.fr/hal-01163534v7/document[ffhal-01163534v7f]

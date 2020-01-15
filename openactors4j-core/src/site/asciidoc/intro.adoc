@@ -1,0 +1,5 @@
+= Module overview: Core
+
+This module contains the core aspects of a lightweight implementation of the actor processing model.
+
+

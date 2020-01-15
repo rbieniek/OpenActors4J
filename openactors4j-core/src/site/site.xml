@@ -1,0 +1,9 @@
+<project>
+    <body>
+        <menu name="Module openactors4-core">
+            <item name="Overview" href="index.html"/>
+            <item name="Introduction" href="intro.html"/>
+        </menu>
+        <menu ref="reports"/>
+    </body>
+</project>
