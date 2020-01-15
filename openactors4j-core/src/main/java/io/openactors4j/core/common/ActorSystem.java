@@ -2,8 +2,7 @@ package io.openactors4j.core.common;
 
 import io.openactors4j.core.typed.ActorBehavior;
 import io.openactors4j.core.typed.TypedActorRef;
-import io.openactors4j.core.untyped.UntypedActor;
-import io.openactors4j.core.untyped.UntypedActorRef;
+import io.openactors4j.core.untyped.UntypedActorBuilder;
 
 public interface ActorSystem {
   String name();
@@ -12,6 +11,6 @@ public interface ActorSystem {
 
   <T, C extends ActorBehavior<T>> TypedActorRef<T> spawn(ActorBehavior<T> behavior, String name);
 
-  <C extends UntypedActor> UntypedActorRef spawn(Class<C> actorClass, String name, Object... params);
+  UntypedActorBuilder newUntypedActor();
 
 }

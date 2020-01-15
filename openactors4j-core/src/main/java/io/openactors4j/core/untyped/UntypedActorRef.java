@@ -1,7 +1,7 @@
 package io.openactors4j.core.untyped;
 
+import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Handle for accessing an actor
@@ -38,5 +38,5 @@ public interface UntypedActorRef {
    * @param timeout cancel further waiting for a response if this timeout expires
    * @return a {@link CompletionStage} for asynchronously handling the response
    */
-  CompletionStage<Object> ask(Object message, TimeUnit timeout);
+  CompletionStage<Object> ask(Object message, Duration timeout);
 }

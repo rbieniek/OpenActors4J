@@ -1,7 +1,7 @@
 package io.openactors4j.core.typed;
 
+import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 public interface TypedActorRef<T> {
   /**
@@ -33,5 +33,5 @@ public interface TypedActorRef<T> {
    * @param timeout cancel further waiting for a response if this timeout expires
    * @return a {@link CompletionStage} for asynchronously handling the response
    */
-  <V> CompletionStage<V> ask(T message, TimeUnit timeout);
+  <V> CompletionStage<V> ask(T message, Duration timeout);
 }
