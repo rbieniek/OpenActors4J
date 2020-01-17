@@ -48,6 +48,7 @@
         <maven.plugin.checkstyle>3.1.0</maven.plugin.checkstyle>
         <maven.plugin.jdeps>3.1.2</maven.plugin.jdeps>
         <maven.plugin.assembly>3.2.0</maven.plugin.assembly>
+        <maven.plugin.resources>3.1.0</maven.plugin.resources>
         <mave.plugin.lombok>1.18.10.0</mave.plugin.lombok>
         <maven.plugin.spotbugs>3.1.12.2</maven.plugin.spotbugs>
         <maven.plugin.asciidoctor>1.5.3</maven.plugin.asciidoctor>
@@ -199,6 +200,14 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven.plugin.resources}</version>
+                    <configuration>
+                        <encoding>UTF-8</encoding>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.plugin.surefire}</version>
                     <dependencies>
@@ -224,6 +233,7 @@
                     <artifactId>maven-site-plugin</artifactId>
                     <version>${maven.plugin.site}</version>
                     <configuration>
+                        <outputEncoding>UTF-8</outputEncoding>
                         <asciidoc>
                             <templateDirs>
                                 <dir>src/site/asciidoc/templates</dir>
