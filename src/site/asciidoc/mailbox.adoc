@@ -5,16 +5,108 @@ mailbox to which messages, targetted onto the actor, are delivered into.
 
 The actor is never called directly in the message delivery process. Any inbound message is placed into the the actor's
 mailbox and taken for processing whenever the actor system scheduler decides to process the next message in that
-mailbox
+mailbox.
+
+The overall abstraction for a mailbox is that of a queue where messages are enqueued to and later taken from.
+The actor system expects to be able to execute any of the following actions on a mailbox implementation:
+
+* Put a message into the mailbox
+* Check if the mailbox has messages available which need to be delivered
+* Take the next available message from the mailbox
+
+The abstraction does not impose any kind of ordering onto the messages, it is up to mailbox implementation to enforce
+whatever ordering scheme it requires.
 
 == Message flow
-tbd
+Any mailbox is attached to an actor implementation and, to some degree, is managed by either the
+actor itself and the enclosing actor system.
+
+This diagram shows the message flow between
+
+* the message originator
+* the enclosing actor system
+* the mailbox
+* the actor instance
+
+[ditaa, target="message-flow-mailbox"]
+....
+/---------------------\  sent message (1)  /-------------------------------------------------------\
+| message originator  | -----------------> |                    actor system                       |
+\---------------------/                    \-------------------------------------------------------/
+                                               |                 ^                      |     |
+                                               |                 |                      |     |
+                                               |                 |   schedule check (3) |     |
+                                               |                 |                      |     |
+                                               |   overflow (2a) |     take message (4) |     |
+                               put message (2) |                 |                      |     |
+                                               |            /---------\                 |     |
+                                               +----------> | mailbox | <---------------+     |
+                                                            \---------/                       |
+                                                                                              |
+                                                                  execute message handler (5) |
+                                                                                              |
+                                                            /----------------\                |
+                                                            | actor instance | <--------------+
+                                                            \----------------/
+
+....
+
+The order in the message flow is as follows:
+
+(1):: the message is delivered to the actor system through the actor ActorRef pointing to the actor implementation
+(2):: the actor system put the message into the mailbox implementation
+(2a):: in case the mailbox cannot accept the message, it is delivered back to the actor system using the overflow
+ handler which is provided by the actor system
+(3):: The actor system checks if the mailbox needs to be scheduled for message processing
+(4):: Whenever a mailbox is scheduled for processing, the actor system takes the next message from the mailbox
+(5):: The actor system calls the message handler provided by the actor implementation with the message
 
 == Overflow handling
-tbd
+A mailbox implementation may reject adding an inbound message at any time. The reasoning is that an actor may choose
+to have only a limited backlog of to-be-processed messages in order to conserve system resources like memory or
+CPU cores. To avoid _mysteriously_ losing messages,
+a mailbox instance is provided with an overflow handler which must be called by the mailbox instance whenever it
+chooses to reject an inbound message.
+
+The following diagram shows the expected behavior of a mailbox implementation
+
+[ditaa, target="mailbox-overflow"]
+....
+
+ /-------------------------------------------------------\
+ |                    actor system                       |
+ \-------------------------------------------------------/
+                 |                 ^
+                 |                 |
+ put message (1) |    overflow (2) |
+                 |                 |
+                 |            /---------\  append message (3)   /-----------------\
+                 +----------> | mailbox | --------------------> | mailbox content |
+                              \---------/                       \-----------------/
+
+....
+
+(1):: The actor system puts a message into the mailbox
+(2):: In case the mailbox rejects the message, it is delivered by to the actor system through the overflow handler
+(3):: Incase the mailbox accepts the message, it is appended to the mailbox content
 
 == Mailbox lifecycle
 tbd
+
+[seqdiag, target="mailbox-lifecyle"]
+....
+
+seqdiag {
+  browser  -> webserver [label = "GET /index.html"];
+  browser <-- webserver;
+  browser  -> webserver [label = "POST /blog/comment"];
+              webserver  -> database [label = "INSERT comment"];
+              webserver <-- database;
+  browser <-- webserver;
+}
+....
+
+
 
 == Standard implementations
 tbd
