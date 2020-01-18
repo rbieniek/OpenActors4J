@@ -91,22 +91,141 @@ The following diagram shows the expected behavior of a mailbox implementation
 (3):: Incase the mailbox accepts the message, it is appended to the mailbox content
 
 == Mailbox lifecycle
-tbd
+The mailbox lifecycle is part of the overall actor instance lifecycle. The mailbox interface has two
+lifecycle methods:
+
+* start a mailbox instance
+* stop a mailbox instance
+
+The default implementations of these lifecycle methods are empty method bodies.
 
 [seqdiag]
 ....
-
 seqdiag {
-  browser  -> webserver [label = "GET /index.html"];
-  browser <-- webserver;
-  browser  -> webserver [label = "POST /blog/comment"];
-              webserver  -> database [label = "INSERT comment"];
-              webserver <-- database;
-  browser <-- webserver;
+  "actor system" => "actor mailbox"[label = "start mailbox (1)"];
+
+  "actor system" => "actor instance"[label = "start instance (2)"];
+
+  "actor system" => "actor mailbox"[label = "put message (3)"];
+
+  "actor system" => "actor mailbox"[label = "check if message present", return = "message present: true/false"];
+
+  "actor system" => "actor mailbox"[label = "take message", return="message"];
+
+  "actor system" => "actor instance"[label = "handle message"];
+
+  "actor system" => "actor instance"[label = "stop instance (4)"];
+
+  "actor system" => "actor mailbox"[label = "stop mailbox (5)"];
 }
 ....
 
+The mailbox lifecycle is placed around the actor instance lifecycle in order to be ready to accept messages as
+early as possible, even if the actor has a deferred startup characterics and has not been fully activated yet
 
+In the above diagram, the overall lifecycle is shown as this:
+
+(1):: Start the mailbox
+(2):: Start the actor instance implementation
+(3):: Handle normal message traffic
+(4):: Stop actor instance
+(5):: Stop actor mailbox
+
+=== Mailbox startup failure
+The mailbox start method may fail and in that case, the following sequence will apply
+
+[seqdiag]
+....
+seqdiag {
+  "actor system" => "actor mailbox"[label = "start mailbox", return="failure by raising an exception"];
+
+  === Repeat startup begin ===
+
+  "actor system" => "actor mailbox"[label = "start mailbox", return="failure by raising an exception"];
+
+  === Repeat startup end ===
+
+  "actor system" -> "actor system"[label="fail actor startup"]
+
+  "actor system" -> "actor system"[label="Diversion to dead-letter target"]
+}
+....
+
+The actor system will try to repeat the mailbox startup according to the retry policy configured for the
+actor system.
+If the mailbox startup fails permanently, the overall actor startup will be aborted and a permanent diversion
+of any inbound messages for the actor to the dead-message target will be established.
+
+In case the mailbox startup suceeds in the recovery cycle, the overall actor startup proceudre will continue
+
+[seqdiag]
+....
+seqdiag {
+  "actor system" => "actor mailbox"[label = "start mailbox", return="failure by raising an exception"];
+
+  === Repeat startup begin ===
+
+  "actor system" => "actor mailbox"[label = "start mailbox", return="failure by raising an exception"];
+
+  === Repeat startup end ===
+
+  "actor system" => "actor mailbox"[label = "start mailbox"];
+
+  "actor system" => "actor instance"[label = "start instance"];
+}
+....
+
+=== Actor instance startup failure
+The actor instance startup may fail and in that case, the following sequence will apply
+
+[seqdiag]
+....
+seqdiag {
+  "actor system" => "actor mailbox"[label = "start mailbox"];
+
+  "actor system" => "actor instance"[label = "start instance", return="failure by raising an exception"];
+
+  === Repeat startup begin ===
+
+  "actor system" => "actor instance"[label = "start instance", return="failure by raising an exception"];
+
+  === Repeat startup end ===
+
+  "actor system" -> "actor system"[label="fail actor startup"]
+
+  "actor system" -> "actor system"[label="Diversion to dead-letter target"]
+
+  "actor system" => "actor mailbox"[label = "stop mailbox"];
+
+}
+....
+
+The actor system will try to repeat the actor instance startup according to the retry policy configured for the
+actor system.
+If the actor instance startup fails permanently, the overall actor startup will be aborted, a
+permanent diversion of any inbound messages for the actor to the dead-message target will be established and
+the mailbox is stopped. The diversion is set up before the maibox shutdown to avoid further message delivery
+to the already active mailbox
+
+In case the actor instance startup suceeds in the recovery cycle, the overall actor startup proceudre
+will continue,
+
+[seqdiag]
+....
+seqdiag {
+  "actor system" => "actor mailbox"[label = "start mailbox"];
+
+  "actor system" => "actor instance"[label = "start instance", return="failure by raising an exception"];
+
+  === Repeat startup begin ===
+
+  "actor system" => "actor instance"[label = "start instance", return="failure by raising an exception"];
+
+  === Repeat startup end ===
+
+  "actor system" => "actor instance"[label = "start instance"];
+}
+....
 
 == Standard implementations
 tbd
