@@ -9,7 +9,7 @@ be delivered at all but if it is delivered, it is delivered only once and not a 
 == One-way messaging: Fire and forge
 In the one-way messaging style, the originating system sends a message to recipient system without waiting for a response.
 
-[ditaa, target="one-way-messaging"]
+[ditaa]
 ....
 
  /----------------\              /----------------\
@@ -24,7 +24,7 @@ In the two-way messaging style, the originating system sends a message to recipi
 The recipient system will eventually receive the request message, process it and send a response message to the
 originator system.
 
-[ditaa, target="two-way-messaging"]
+[ditaa]
 ....
 
  /----------------\   Request    /----------------\

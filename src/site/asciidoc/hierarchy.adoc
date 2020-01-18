@@ -13,7 +13,7 @@ tree.
 
 The following diagrams shows the hierarchical relationship of actors in an actor system
 
-[ditaa, target="actor-hierarchy"]
+[ditaa]
 ....
                                   +--------------+
                                   | Actor system |

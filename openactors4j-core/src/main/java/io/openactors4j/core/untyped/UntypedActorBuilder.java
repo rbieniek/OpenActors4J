@@ -6,7 +6,7 @@ import java.util.function.BiFunction;
 
 /**
  * Builder interface used to create (from an {@link io.openactors4j.core.common.ActorSystem})
- * or spawn (from an {@link io.openactors4j.core.common.ActorContext] a new actor}
+ * or spawn (from an {@link io.openactors4j.core.common.ActorContext} a new actor}
  */
 public interface UntypedActorBuilder {
   /**
@@ -47,7 +47,7 @@ public interface UntypedActorBuilder {
    * by the error can normally not coped with anyway, other than simply terminating the program
    * anyway.
    *
-   * @param strategy
+   * @param strategy the supervision strategy to be used
    * @return this builder instance
    */
   UntypedActorBuilder withSupervisionStrategy(SupervisionStrategy strategy);
@@ -66,9 +66,9 @@ public interface UntypedActorBuilder {
   /**
    * Set the name of the actor to be created.
    *
-   * <B></B>Please note:</B> This name is absolute and trying to create a actor with a name which
+   * <B>Please note:</B> This name is absolute and trying to create a actor with a name which
    * already exists in the current scope, either {@link io.openactors4j.core.common.ActorSystem})
-   * or {@link io.openactors4j.core.common.ActorContext], will cause the creation to fail
+   * or {@link io.openactors4j.core.common.ActorContext}, will cause the creation to fail
    *
    * @param actorName the actor name
    * @return this builder instance
@@ -80,7 +80,7 @@ public interface UntypedActorBuilder {
    *
    * The actor name will be constructed from this prefix and an unique numeric ID value
    *
-   * @param actorNamePrefix
+   * @param actorNamePrefix the prefix part of the unique actor name
    * @return this builder instance
    */
   UntypedActorBuilder withNamePrefix(String actorNamePrefix);

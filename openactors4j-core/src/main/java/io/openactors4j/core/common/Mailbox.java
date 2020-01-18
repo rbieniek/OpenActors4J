@@ -19,15 +19,15 @@ public interface Mailbox<T> {
    * An implementation may choose to not support message overflow at all, for example if it is
    * an implementation without any restrictions on the size of the managed mailbox
    *
-   * @param overflowHandler the overflow handler provided by the {@link ActorSystem}
+   * @param handler the overflow handler provided by the {@link ActorSystem}
    */
-  default void overflowHandler(MailboxOverflowHandler<T> overflowHandler) {};
+  default void setOverflowHandler(MailboxOverflowHandler<T> handler) {};
 
   /**
    * lifecycle method to notify the mailbox implementation that it should begin to accept messages
    *
    * If an implementation supports this lifecycle method, it must hand over any messages to the
-   * {@link Mailbox#overflowHandler(MailboxOverflowHandler)} before this lifecycle method was called
+   * {@link Mailbox#setOverflowHandler(MailboxOverflowHandler)} before this lifecycle method was called
    */
   default void startReceiving() {};
 
@@ -35,7 +35,7 @@ public interface Mailbox<T> {
    * lifecycle method to notify the mailbox implementation that it should stop to accept messages.
    *
    * If an implementation supports this lifecycle method, it must hand over any messages to the
-   * {@link Mailbox#overflowHandler(MailboxOverflowHandler)} after this lifecycle method was called
+   * {@link Mailbox#setOverflowHandler(MailboxOverflowHandler)} after this lifecycle method was called
    */
   default void stopReceiving() {};
 

@@ -28,7 +28,7 @@ This diagram shows the message flow between
 * the mailbox
 * the actor instance
 
-[ditaa, target="message-flow-mailbox"]
+[ditaa]
 ....
 /---------------------\  sent message (1)  /-------------------------------------------------------\
 | message originator  | -----------------> |                    actor system                       |
@@ -70,7 +70,7 @@ chooses to reject an inbound message.
 
 The following diagram shows the expected behavior of a mailbox implementation
 
-[ditaa, target="mailbox-overflow"]
+[ditaa]
 ....
 
  /-------------------------------------------------------\
@@ -93,7 +93,7 @@ The following diagram shows the expected behavior of a mailbox implementation
 == Mailbox lifecycle
 tbd
 
-[seqdiag, target="mailbox-lifecyle"]
+[seqdiag]
 ....
 
 seqdiag {

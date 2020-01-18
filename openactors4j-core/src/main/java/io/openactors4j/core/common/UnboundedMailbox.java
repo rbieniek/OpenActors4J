@@ -12,13 +12,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class UnboundedMailbox<T> implements Mailbox<T> {
   private MailboxOverflowHandler<T> overflowHandler;
+  private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>();
 
   @Override
-  public void overflowHandler(MailboxOverflowHandler<T> overflowHandler) {
-    this.overflowHandler = overflowHandler;
+  public void setOverflowHandler(final MailboxOverflowHandler<T> handler) {
+    this.overflowHandler = handler;
   }
-
-  private ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>();
 
   @Override
   public boolean needsScheduling() {
@@ -26,7 +25,7 @@ public class UnboundedMailbox<T> implements Mailbox<T> {
   }
 
   @Override
-  public void putMessage(T message) {
+  public void putMessage(final T message) {
     if(!queue.offer(message)) {
       // the queue is unbounded, so this should never happen.
       overflowHandler.messageOverflow(message);
