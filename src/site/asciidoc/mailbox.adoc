@@ -1,0 +1,25 @@
+= Mailbox
+
+The concept of mailboxes is a central piece of the overall message delivery system. Each actor instance has its own
+mailbox to which messages, targetted onto the actor, are delivered into.
+
+The actor is never called directly in the message delivery process. Any inbound message is placed into the the actor's
+mailbox and taken for processing whenever the actor system scheduler decides to process the next message in that
+mailbox
+
+== Message flow
+tbd
+
+== Overflow handling
+tbd
+
+== Mailbox lifecycle
+tbd
+
+== Standard implementations
+tbd
+
+=== Unbounded mailbox
+tbd
+
+

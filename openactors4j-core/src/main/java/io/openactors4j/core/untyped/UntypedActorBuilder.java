@@ -1,5 +1,6 @@
 package io.openactors4j.core.untyped;
 
+import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.SupervisionStrategy;
 import java.util.function.BiFunction;
 
@@ -50,6 +51,17 @@ public interface UntypedActorBuilder {
    * @return this builder instance
    */
   UntypedActorBuilder withSupervisionStrategy(SupervisionStrategy strategy);
+
+  /**
+   * The {@link Mailbox} to be used for this actor.
+   *
+   * If this method is not used on the builder, it defaults
+   * to {@link io.openactors4j.core.common.UnboundedMailbox}
+   *
+   * @param mailbox the {@link Mailbox} implementation to be used
+   * @return this builder instance
+   */
+  UntypedActorBuilder withMailbox(Mailbox<Object> mailbox);
 
   /**
    * Set the name of the actor to be created.
