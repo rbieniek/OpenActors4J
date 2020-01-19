@@ -228,9 +228,14 @@ seqdiag {
 ....
 
 == Standard implementations
-tbd
+There are some standard mailbox implementation part of the framework
 
 === Unbounded mailbox
-tbd
+The unbounded mailbox implementation provides a limitless mailbox implementation which holds as many messages
+as the free JVM memory permits.
+
+The implementation internally uses an unconstrained and thread-safe linked list for message buffering. It still
+can make use of the overflow handler because the underlying linked list implementation may encounter a
+situation where appending the message to the list is not possible.
 
 
