@@ -1,11 +1,10 @@
 = Mailbox
 
-The concept of mailboxes is a central piece of the overall message delivery system. Each actor instance has its own
-mailbox to which messages, targetted onto the actor, are delivered into.
+The concept of mailboxes is a central piece of the overall message delivery system.
+Each actor instance has its own mailbox to which messages, targetted onto the actor, are delivered into.
 
-The actor is never called directly in the message delivery process. Any inbound message is placed into the the actor's
-mailbox and taken for processing whenever the actor system scheduler decides to process the next message in that
-mailbox.
+The actor is never called directly in the message delivery process.
+Any inbound message is placed into the the actor's mailbox and taken for processing whenever the actor system scheduler decides to process the next message in that mailbox.
 
 The overall abstraction for a mailbox is that of a queue where messages are enqueued to and later taken from.
 The actor system expects to be able to execute any of the following actions on a mailbox implementation:
@@ -14,12 +13,11 @@ The actor system expects to be able to execute any of the following actions on a
 * Check if the mailbox has messages available which need to be delivered
 * Take the next available message from the mailbox
 
-The abstraction does not impose any kind of ordering onto the messages, it is up to mailbox implementation to enforce
-whatever ordering scheme it requires.
+The abstraction does not impose any kind of ordering onto the messages, it is up to mailbox implementation to enforce whatever ordering scheme it requires.
 
 == Message flow
-Any mailbox is attached to an actor implementation and, to some degree, is managed by either the
-actor itself and the enclosing actor system.
+
+Any mailbox is attached to an actor implementation and, to some degree, is managed by either the actor itself and the enclosing actor system.
 
 This diagram shows the message flow between
 
@@ -53,20 +51,13 @@ This diagram shows the message flow between
 
 The order in the message flow is as follows:
 
-(1):: the message is delivered to the actor system through the actor ActorRef pointing to the actor implementation
-(2):: the actor system put the message into the mailbox implementation
-(2a):: in case the mailbox cannot accept the message, it is delivered back to the actor system using the overflow
- handler which is provided by the actor system
-(3):: The actor system checks if the mailbox needs to be scheduled for message processing
-(4):: Whenever a mailbox is scheduled for processing, the actor system takes the next message from the mailbox
-(5):: The actor system calls the message handler provided by the actor implementation with the message
+(1):: the message is delivered to the actor system through the actor ActorRef pointing to the actor implementation (2):: the actor system put the message into the mailbox implementation (2a):: in case the mailbox cannot accept the message, it is delivered back to the actor system using the overflow handler which is provided by the actor system (3):: The actor system checks if the mailbox needs to be scheduled for message processing (4):: Whenever a mailbox is scheduled for processing, the actor system takes the next message from the mailbox (5):: The actor system calls the message handler provided by the actor implementation with the message
 
 == Overflow handling
-A mailbox implementation may reject adding an inbound message at any time. The reasoning is that an actor may choose
-to have only a limited backlog of to-be-processed messages in order to conserve system resources like memory or
-CPU cores. To avoid _mysteriously_ losing messages,
-a mailbox instance is provided with an overflow handler which must be called by the mailbox instance whenever it
-chooses to reject an inbound message.
+
+A mailbox implementation may reject adding an inbound message at any time.
+The reasoning is that an actor may choose to have only a limited backlog of to-be-processed messages in order to conserve system resources like memory or CPU cores.
+To avoid _mysteriously_ losing messages, a mailbox instance is provided with an overflow handler which must be called by the mailbox instance whenever it chooses to reject an inbound message.
 
 The following diagram shows the expected behavior of a mailbox implementation
 
@@ -86,13 +77,12 @@ The following diagram shows the expected behavior of a mailbox implementation
 
 ....
 
-(1):: The actor system puts a message into the mailbox
-(2):: In case the mailbox rejects the message, it is delivered by to the actor system through the overflow handler
-(3):: Incase the mailbox accepts the message, it is appended to the mailbox content
+(1):: The actor system puts a message into the mailbox (2):: In case the mailbox rejects the message, it is delivered by to the actor system through the overflow handler (3):: Incase the mailbox accepts the message, it is appended to the mailbox content
 
 == Mailbox lifecycle
-The mailbox lifecycle is part of the overall actor instance lifecycle. The mailbox interface has two
-lifecycle methods:
+
+The mailbox lifecycle is part of the overall actor instance lifecycle.
+The mailbox interface has two lifecycle methods:
 
 * start a mailbox instance
 * stop a mailbox instance
@@ -120,18 +110,14 @@ seqdiag {
 }
 ....
 
-The mailbox lifecycle is placed around the actor instance lifecycle in order to be ready to accept messages as
-early as possible, even if the actor has a deferred startup characterics and has not been fully activated yet
+The mailbox lifecycle is placed around the actor instance lifecycle in order to be ready to accept messages as early as possible, even if the actor has a deferred startup characterics and has not been fully activated yet
 
 In the above diagram, the overall lifecycle is shown as this:
 
-(1):: Start the mailbox
-(2):: Start the actor instance implementation
-(3):: Handle normal message traffic
-(4):: Stop actor instance
-(5):: Stop actor mailbox
+(1):: Start the mailbox (2):: Start the actor instance implementation (3):: Handle normal message traffic (4):: Stop actor instance (5):: Stop actor mailbox
 
 === Mailbox startup failure
+
 The mailbox start method may fail and in that case, the following sequence will apply
 
 [seqdiag]
@@ -151,10 +137,8 @@ seqdiag {
 }
 ....
 
-The actor system will try to repeat the mailbox startup according to the retry policy configured for the
-actor system.
-If the mailbox startup fails permanently, the overall actor startup will be aborted and a permanent diversion
-of any inbound messages for the actor to the dead-message target will be established.
+The actor system will try to repeat the mailbox startup according to the retry policy configured for the actor system.
+If the mailbox startup fails permanently, the overall actor startup will be aborted and a permanent diversion of any inbound messages for the actor to the dead-message target will be established.
 
 In case the mailbox startup suceeds in the recovery cycle, the overall actor startup proceudre will continue
 
@@ -176,6 +160,7 @@ seqdiag {
 ....
 
 === Actor instance startup failure
+
 The actor instance startup may fail and in that case, the following sequence will apply
 
 [seqdiag]
@@ -200,15 +185,11 @@ seqdiag {
 }
 ....
 
-The actor system will try to repeat the actor instance startup according to the retry policy configured for the
-actor system.
-If the actor instance startup fails permanently, the overall actor startup will be aborted, a
-permanent diversion of any inbound messages for the actor to the dead-message target will be established and
-the mailbox is stopped. The diversion is set up before the maibox shutdown to avoid further message delivery
-to the already active mailbox
+The actor system will try to repeat the actor instance startup according to the retry policy configured for the actor system.
+If the actor instance startup fails permanently, the overall actor startup will be aborted, a permanent diversion of any inbound messages for the actor to the dead-message target will be established and the mailbox is stopped.
+The diversion is set up before the maibox shutdown to avoid further message delivery to the already active mailbox
 
-In case the actor instance startup suceeds in the recovery cycle, the overall actor startup proceudre
-will continue,
+In case the actor instance startup suceeds in the recovery cycle, the overall actor startup proceudre will continue,
 
 [seqdiag]
 ....
@@ -228,14 +209,14 @@ seqdiag {
 ....
 
 == Standard implementations
+
 There are some standard mailbox implementation part of the framework
 
 === Unbounded mailbox
-The unbounded mailbox implementation provides a limitless mailbox implementation which holds as many messages
-as the free JVM memory permits.
 
-The implementation internally uses an unconstrained and thread-safe linked list for message buffering. It still
-can make use of the overflow handler because the underlying linked list implementation may encounter a
-situation where appending the message to the list is not possible.
+The unbounded mailbox implementation provides a limitless mailbox implementation which holds as many messages as the free JVM memory permits.
+
+The implementation internally uses an unconstrained and thread-safe linked list for message buffering.
+It still can make use of the overflow handler because the underlying linked list implementation may encounter a situation where appending the message to the list is not possible.
 
 

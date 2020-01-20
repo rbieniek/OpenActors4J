@@ -1,12 +1,11 @@
 = Messaging model and message processing
 
-The actor-based in general is built upon the abstraction that a transmitter sends a message to a receiver which
-in turn processes the message in an asynchronous fashion.
+The actor-based in general is built upon the abstraction that a transmitter sends a message to a receiver which in turn processes the message in an asynchronous fashion.
 
-The in-between infrastructure makes an at-most-once guaranty about message delivery, which means that a message may not
-be delivered at all but if it is delivered, it is delivered only once and not a second time.
+The in-between infrastructure makes an at-most-once guaranty about message delivery, which means that a message may not be delivered at all but if it is delivered, it is delivered only once and not a second time.
 
 == One-way messaging: Fire and forge
+
 In the one-way messaging style, the originating system sends a message to recipient system without waiting for a response.
 
 [ditaa]
@@ -20,9 +19,9 @@ In the one-way messaging style, the originating system sends a message to recipi
 ....
 
 == Two-way messaging: Request and response
+
 In the two-way messaging style, the originating system sends a message to recipient system and awaits the response.
-The recipient system will eventually receive the request message, process it and send a response message to the
-originator system.
+The recipient system will eventually receive the request message, process it and send a response message to the originator system.
 
 [ditaa]
 ....

@@ -13,8 +13,8 @@ public interface UntypedActorBuilder {
    * Pass the actor implementation class to the Builder
    *
    * @param actorClass the implementation class
-   * @param <T> type parameter to constrain the implementation to be an
-   *           instance of {@link UntypedActor}
+   * @param <T>        type parameter to constrain the implementation to be an
+   *                   instance of {@link UntypedActor}
    * @return this builder instance
    */
   <T extends UntypedActor> UntypedActorBuilder withActorClass(Class<T> actorClass);
@@ -25,8 +25,8 @@ public interface UntypedActorBuilder {
    * {@link io.openactors4j.core.common.ActorSystemBuilder#withUntypedActorFactory(BiFunction)}
    *
    * @param factory the factory instance
-   * @param <T> type parameter to constrain the implementation to be an
-   *           instance of {@link UntypedActor}
+   * @param <T>     type parameter to constrain the implementation to be an
+   *                instance of {@link UntypedActor}
    * @return this builder instance
    */
   <T extends UntypedActor> UntypedActorBuilder withFactory(BiFunction<Class<T>, Object[], T> factory);
@@ -42,7 +42,7 @@ public interface UntypedActorBuilder {
   /**
    * The {@link SupervisionStrategy} to be executed on the created instance if the message
    * processing raises an {@link Exception}.
-   *
+   * <p>
    * This strategy is not executed when an {@link Error} is raised. The abnormal condition signaled
    * by the error can normally not coped with anyway, other than simply terminating the program
    * anyway.
@@ -54,7 +54,7 @@ public interface UntypedActorBuilder {
 
   /**
    * The {@link Mailbox} to be used for this actor.
-   *
+   * <p>
    * If this method is not used on the builder, it defaults
    * to {@link io.openactors4j.core.common.UnboundedMailbox}
    *
@@ -77,7 +77,7 @@ public interface UntypedActorBuilder {
 
   /**
    * Set the name prefix for the created actor.
-   *
+   * <p>
    * The actor name will be constructed from this prefix and an unique numeric ID value
    *
    * @param actorNamePrefix the prefix part of the unique actor name

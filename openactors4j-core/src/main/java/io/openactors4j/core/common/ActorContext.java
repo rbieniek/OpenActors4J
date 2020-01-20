@@ -1,13 +1,16 @@
 package io.openactors4j.core.common;
 
-import io.openactors4j.core.typed.ActorBehavior;
+import io.openactors4j.core.typed.Behavior;
+import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import io.openactors4j.core.untyped.UntypedActorRef;
 import java.util.Optional;
 
 public interface ActorContext {
-  <T, C extends ActorBehavior<T>> TypedActorRef<T> spawn(ActorBehavior<T> behavior, String name);
+  <T> BehaviorBuilder<T> newBehaviorBuilder();
+
+  <T> TypedActorRef<T> spawn(Behavior<T> behavior, String name);
 
   UntypedActorBuilder spawnUntypedActor();
 

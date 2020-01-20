@@ -65,6 +65,7 @@
         <java.lib.asciidoctorj>2.2.0</java.lib.asciidoctorj>
         <java.lib.asciidoctorj.diagram>2.0.0</java.lib.asciidoctorj.diagram>
         <java.lib.jruby>9.2.9.0</java.lib.jruby>
+        <java.lib.assertj.core>3.14.0</java.lib.assertj.core>
     </properties>
 
     <modules>
@@ -158,6 +159,20 @@
                 <artifactId>junit-bom</artifactId>
                 <version>${java.lib.junit.bom}</version>
                 <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${java.lib.assertj.core}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

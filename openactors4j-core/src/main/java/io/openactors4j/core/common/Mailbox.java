@@ -5,7 +5,7 @@ import java.util.Optional;
 /**
  * The mailbox abstraction is a central piece of the overall message delivery system for
  * communicating with an actor instance.
- *
+ * <p>
  * Messages are never sent directly to an actor. Instead, the messages are buffered in a mailbox
  * awaiting processing by an actor whenever the scheduler can assign resources.
  *
@@ -15,29 +15,38 @@ public interface Mailbox<T> {
 
   /**
    * lifecylce method to assign the overflow handler to the mailbox.
-   *
+   * <p>
    * An implementation may choose to not support message overflow at all, for example if it is
    * an implementation without any restrictions on the size of the managed mailbox
    *
    * @param handler the overflow handler provided by the {@link ActorSystem}
    */
-  default void setOverflowHandler(MailboxOverflowHandler<T> handler) {};
+  default void setOverflowHandler(MailboxOverflowHandler<T> handler) {
+  }
+
+  ;
 
   /**
    * lifecycle method to notify the mailbox implementation that it should begin to accept messages
-   *
+   * <p>
    * If an implementation supports this lifecycle method, it must hand over any messages to the
    * {@link Mailbox#setOverflowHandler(MailboxOverflowHandler)} before this lifecycle method was called
    */
-  default void startReceiving() {};
+  default void startReceiving() {
+  }
+
+  ;
 
   /**
    * lifecycle method to notify the mailbox implementation that it should stop to accept messages.
-   *
+   * <p>
    * If an implementation supports this lifecycle method, it must hand over any messages to the
    * {@link Mailbox#setOverflowHandler(MailboxOverflowHandler)} after this lifecycle method was called
    */
-  default void stopReceiving() {};
+  default void stopReceiving() {
+  }
+
+  ;
 
   /**
    * Query the mailbox if it has at least one message which needs processing

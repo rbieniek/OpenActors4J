@@ -1,15 +1,17 @@
 = Actor hierarchy: Relationship and Supervision
 
 == Actor system
-The actor system is the overall container for all actors living in the system. It is responsible for:
+
+The actor system is the overall container for all actors living in the system.
+It is responsible for:
 
 * Managing the actor instance lifecycle
 * Schedule actor message processing
 * Resource allocation, for example thread pool management
 
 == Actor hierarchy
-The actors in an actor system are organized in a hierarchical fashion with the actor system being the root of the actor
-tree.
+
+The actors in an actor system are organized in a hierarchical fashion with the actor system being the root of the actor tree.
 
 The following diagrams shows the hierarchical relationship of actors in an actor system
 
@@ -50,18 +52,17 @@ The following diagrams shows the hierarchical relationship of actors in an actor
 As shown, the overall set of actors form a tree which is rooted by the _root guardian_
 
 == Parental relationship
-In order to have <<lifecycle.adoc#,lifecycle>> of an actor managed correctly, every actor needs to have a managing
-parent. The only exception to this rule is the _root guardian_ which is managed by the _actor system_ itself.
+
+In order to have <<lifecycle.adoc#,lifecycle>> of an actor managed correctly, every actor needs to have a managing parent.
+The only exception to this rule is the _root guardian_ which is managed by the _actor system_ itself.
 
 The following rules apply:
-* Any actor created from the application code (through the actor system), is located as an immediate child
-of the _user guardian_
-* Any actor spawned by another actor (through the <<actor-context.adoc#,actor context>>) is located as an
-immediate child of the spawning actor.
-* Any actor created from another actor (through the actor system), is located as an immediate child
-of the _user guardian_
+* Any actor created from the application code (through the actor system), is located as an immediate child of the _user guardian_
+* Any actor spawned by another actor (through the <<actor-context.adoc#,actor context>>) is located as an immediate child of the spawning actor.
+* Any actor created from another actor (through the actor system), is located as an immediate child of the _user guardian_
 
 == Guardians
+
 An actor system always contains three internal actors with special capabilities:
 
 * _root guardian_
@@ -69,10 +70,13 @@ An actor system always contains three internal actors with special capabilities:
 * _user guardian_
 
 === Root guardian
+
 tbd
 
 === System guardian
+
 tbd
 
 === User guardian
+
 tbd
