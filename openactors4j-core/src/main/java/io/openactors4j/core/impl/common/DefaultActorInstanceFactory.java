@@ -151,7 +151,6 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
         canMatch = evaluatePrimitive(ctorClazz, argClazz)
             .map(func -> transformers.add(func))
             .orElse(false);
-
       } else if (ctorClazz.isAssignableFrom(argClazz)) {
         transformers.add(identity);
       } else {

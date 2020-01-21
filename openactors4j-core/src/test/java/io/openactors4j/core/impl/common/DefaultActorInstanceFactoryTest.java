@@ -104,6 +104,32 @@ public class DefaultActorInstanceFactoryTest {
             .apply(ClassWithFailingConstructors.class, new Object[] {10, "test", 20}));
   }
 
+  @Test
+  public void shouldInstantiateWithAllPrimitiveTypes() {
+    ClassWithAllPrimitives instance = new DefaultActorInstanceFactory<ClassWithAllPrimitives>()
+        .apply(ClassWithAllPrimitives.class,
+            new Object[] {true, (byte) 0x10, 'c', 20, 30L, (short) 10, (float) 1.0, (double) 2.0});
+
+    assertThat(instance).isNotNull();
+    assertThat(instance.isBool()).isTrue();
+    assertThat(instance.getOctet()).isEqualTo((byte) 0x10);
+    assertThat(instance.getCharacter()).isEqualTo('c');
+    assertThat(instance.getINumber()).isEqualTo(20);
+    assertThat(instance.getLNumber()).isEqualTo(30L);
+    assertThat(instance.getSNumber()).isEqualTo((short) 10);
+    assertThat(instance.getFNumber()).isEqualTo((float) 1.0);
+    assertThat(instance.getDNumber()).isEqualTo((double) 2.0);
+  }
+
+  @Test
+  public void shouldInstantiateWithArray() {
+    ClassWithArray instance = new DefaultActorInstanceFactory<ClassWithArray>()
+        .apply(ClassWithArray.class,
+            new Object[] { new int[] { 10 }});
+
+    assertThat(instance).isNotNull();
+    assertThat(instance.getArray()).isNotEmpty().containsOnly(10);
+  }
   public static class TestUntypedActor implements UntypedActor {
     @Override
     public void setContext(ActorContext context) {
@@ -139,5 +165,27 @@ public class DefaultActorInstanceFactoryTest {
     public ClassWithFailingConstructors() {
       value = 1 / 0;
     }
+  }
+
+  @AllArgsConstructor
+  @NoArgsConstructor
+  @Getter
+  public static class ClassWithAllPrimitives extends TestUntypedActor {
+    private boolean bool;
+    private byte octet;
+    private char character;
+    private int iNumber;
+    private long lNumber;
+    private short sNumber;
+    private float fNumber;
+    private double dNumber;
+  }
+
+
+  @AllArgsConstructor
+  @NoArgsConstructor
+  @Getter
+  public static class ClassWithArray extends TestUntypedActor {
+    private int[] array;
   }
 }
