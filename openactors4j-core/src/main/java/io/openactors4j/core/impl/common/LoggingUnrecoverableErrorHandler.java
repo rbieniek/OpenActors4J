@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LoggingUnrecoverableErrorHandler implements Consumer<Throwable> {
-  private static final Logger logger = LoggerFactory.getLogger(ActorSystem.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ActorSystem.class);
 
   @Override
-  public void accept(Throwable throwable) {
-    logger.error("Unrecoverable error", throwable);
+  public void accept(final Throwable throwable) {
+    LOGGER.error("Unrecoverable error", throwable);
   }
 }

@@ -1,8 +1,11 @@
 package io.openactors4j.core.impl.common;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+
 import io.openactors4j.core.boot.ActorSystemFactory;
+import io.openactors4j.core.common.ThreadPoolConfiguration;
 import java.util.ServiceLoader;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -17,9 +20,15 @@ public class ActorSystemBuilderImplTest {
 
   @Test
   public void shouldCreateActorSystemWithDefaults() {
-      ActorSystemImpl actorSystem = (ActorSystemImpl)factory.newSystemBuilder().build();
-
-    Assertions.assertThat(actorSystem).isNotNull();
-    Assertions.assertThat(actorSystem.name()).isEqualTo("actor-system");
+    try (ActorSystemImpl actorSystem = (ActorSystemImpl) factory.newSystemBuilder().build()) {
+      assertThat(actorSystem).isNotNull();
+      assertThat(actorSystem.name()).isEqualTo("actor-system");
+      assertThat(actorSystem.getSystemThreadPoolConfiguration())
+          .isEqualTo(ThreadPoolConfiguration.builder()
+              .build());
+      assertThat(actorSystem.getUserThreadPoolConfiguration())
+          .isEqualTo(ThreadPoolConfiguration.builder()
+              .build());
+    }
   }
 }

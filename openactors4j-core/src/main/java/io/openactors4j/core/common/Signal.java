@@ -1,5 +1,5 @@
 package io.openactors4j.core.common;
 
 public enum Signal {
-  PreStart, PreRestart, PostStop, Terminate;
+  PRE_START, PRE_RESTART, POST_STOP, TERMINATE;
 }

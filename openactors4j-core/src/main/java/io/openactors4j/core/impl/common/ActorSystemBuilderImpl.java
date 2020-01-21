@@ -1,28 +1,33 @@
 package io.openactors4j.core.impl.common;
 
-import io.openactors4j.core.boot.ActorSystemBootstrapConfiguration;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.ActorSystemBuilder;
+import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.untyped.UntypedActor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
 public class ActorSystemBuilderImpl implements ActorSystemBuilder {
-  private final ActorSystemBootstrapConfiguration bootstrapConfiguration;
-
   private String name = "actor-system";
-  private BiFunction factory = null;
-  private ExecutorService executorService = new ThreadPoolExecutor(bootstrapConfiguration.getMinimalDefaultThreadPoolSize(),
-      bootstrapConfiguration.getMaximalDefaultThreadPoolSize(),
-      bootstrapConfiguration.getKeepaliveTime(),
-      bootstrapConfiguration.getTimeUnit(),
-      new LinkedBlockingQueue<>());
+  private BiFunction factory = new DefaultActorInstanceFactory();
+  private ThreadPoolConfiguration userThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
+  private ThreadPoolConfiguration systemThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private Consumer<Throwable> unrecoverableErrorHandler = new LoggingUnrecoverableErrorHandler();
+
+
+  @Override
+  public ActorSystemBuilder withUserThreadPoolConfiguration(final ThreadPoolConfiguration parameters) {
+    this.userThreadPoolConfiguration = parameters;
+
+    return this;
+  }
+
+  @Override
+  public ActorSystemBuilder withSystemThreadPoolConfiguration(final ThreadPoolConfiguration parameters) {
+    this.systemThreadPoolConfiguration = parameters;
+
+    return this;
+  }
 
   @Override
   public ActorSystemBuilder withName(final String name) {
@@ -39,21 +44,17 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
   }
 
   @Override
-  public ActorSystemBuilder withExecutorService(final ExecutorService executorService) {
-    this.executorService = executorService;
+  public ActorSystemBuilder withUnrecoverableErrorHandler(final Consumer<Throwable> handler) {
+    this.unrecoverableErrorHandler = handler;
 
     return this;
   }
 
   @Override
-  public ActorSystemBuilder withUnrecoverableErrorHandler(Consumer<Throwable> handler) {
-    return this;
-  }
-
-  @Override
+  @SuppressWarnings("PMD.AvoidCatchingThrowable")
   public ActorSystem build() {
     final ActorSystemImpl actorSystem = new ActorSystemImpl(name, factory,
-        executorService, unrecoverableErrorHandler);
+        userThreadPoolConfiguration, systemThreadPoolConfiguration, unrecoverableErrorHandler);
 
     try {
       actorSystem.start();

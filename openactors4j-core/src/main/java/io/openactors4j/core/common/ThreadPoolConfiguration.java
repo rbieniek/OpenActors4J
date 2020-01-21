@@ -1,4 +1,4 @@
-package io.openactors4j.core.boot;
+package io.openactors4j.core.common;
 
 import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,7 @@ import lombok.Data;
 @Builder
 @Data
 @AllArgsConstructor
-public class ActorSystemBootstrapConfiguration {
+public class ThreadPoolConfiguration {
   @Builder.Default
   private int minimalDefaultThreadPoolSize = 10;
 
