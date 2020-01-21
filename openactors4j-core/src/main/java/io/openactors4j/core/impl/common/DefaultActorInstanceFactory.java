@@ -8,12 +8,12 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFunction<Class<T>, Object[], T> {
 
-  private final Map<Class, PrimitiveTypeHelper<?>> primitiveTypeHelpers = new HashMap<>();
+  private final Map<Class, PrimitiveTypeHelper<?>> primitiveTypeHelpers = new ConcurrentHashMap<>();
 
   private final Function<Object, Object> identity = (a) -> a;
 
@@ -67,6 +67,7 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
   }
 
   @Override
+  @SuppressWarnings( {"PMD.AvoidAccessibilityAlteration", "PMD.PreserveStackTrace", "PMD.AvoidCatchingGenericException"})
   public T apply(final Class<T> actorClass, final Object[] cArgs) {
     final String actorClassName = actorClass.getName();
 
@@ -76,7 +77,7 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
           .collect(Collectors.toList());
 
       log.info("Calling actor instance for class {} with parameter types {}",
-          actorClass,
+          actorClassName,
           cArgClasses.stream()
               .map(c -> c.getName())
               .reduce((a, b) -> String.format("%s,%s", a, b))
@@ -85,18 +86,18 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
       return AccessController.doPrivileged(new PrivilegedExceptionAction<T>() {
         @Override
         public T run() throws Exception {
-          final T result;
+          T result;
 
-          if(cArgs != null && cArgs.length > 0) {
-            ConstructorContainer<T> cc = findMatchingConstructor(actorClass, cArgClasses)
+          if (cArgs != null && cArgs.length > 0) {
+            final ConstructorContainer<T> constructorContainer = findMatchingConstructor(actorClass, cArgClasses)
                 .orElseThrow(() -> new NoSuchMethodException());
 
-            cc.getCtor().setAccessible(true);
+            constructorContainer.getCtor().setAccessible(true);
 
-            ArrayList<Object> transformedArgs = new ArrayList<>();
+            final ArrayList<Object> transformedArgs = new ArrayList<>();
 
-            Iterator<Object> argIt = Arrays.asList(cArgs).iterator();
-            Iterator<Function<Object, Object>> funcIt = cc.getTransformers().get()
+            final Iterator<Object> argIt = Arrays.asList(cArgs).iterator();
+            final Iterator<Function<Object, Object>> funcIt = constructorContainer.getTransformers().get()
                 .stream()
                 .map(t -> (Function<Object, Object>) t)
                 .iterator();
@@ -105,9 +106,9 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
               transformedArgs.add(funcIt.next().apply(argIt.next()));
             }
 
-            result = cc.getCtor().newInstance(transformedArgs.toArray(new Object[0]));
+            result = constructorContainer.getCtor().newInstance(transformedArgs.toArray(new Object[0]));
           } else {
-            Constructor<T> ctor = actorClass.getDeclaredConstructor();
+            final Constructor<T> ctor = actorClass.getDeclaredConstructor();
 
             ctor.setAccessible(true);
 
@@ -126,8 +127,9 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
 
       throw new ActorInstantiationFailureException(e);
     }
-   }
+  }
 
+  @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
   private Optional<ConstructorContainer<T>> findMatchingConstructor(final Class<T> clazz, final List<Class> ctorArgClazz) {
     return Arrays.stream(clazz.getDeclaredConstructors())
         .map(ctor -> (Constructor<T>) ctor)
@@ -141,47 +143,18 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
     final Iterator<Class<?>> ctorIt = Arrays.asList(ctor.getParameterTypes()).iterator();
     final List<Function<?, Object>> transformers = new LinkedList<>();
 
-    log.info("Checking constructor {}", ctor);
-
     while (canMatch && ctorIt.hasNext() && argIt.hasNext()) {
-      Class<?> ctorClazz = ctorIt.next();
-      Class argClazz = argIt.next();
-
-      log.info("Checking ctor argument class {} against argument class {}",
-          ctorClazz.getName(),
-          argClazz.getName());
+      final Class<?> ctorClazz = ctorIt.next();
+      final Class argClazz = argIt.next();
 
       if (ctorClazz.isPrimitive()) {
-        log.info("checking primitive type argument {}", ctorClazz.getName());
+        canMatch = evaluatePrimitive(ctorClazz, argClazz)
+            .map(func -> transformers.add(func))
+            .orElse(false);
 
-        if (primitiveTypeHelpers.containsKey(ctorClazz)) {
-          PrimitiveTypeHelper<?> helper = primitiveTypeHelpers.get(ctorClazz);
-
-          if (helper.getBoxingClass().isAssignableFrom(argClazz)) {
-            log.info("add primitive type argument mapper from {} to {}",
-                ctorClazz.getName(),
-                helper.getBoxingClass().getName());
-
-            transformers.add(helper.getValueMapper());
-          } else {
-            log.info("cannot match primitive type argument mapper between {} to {}",
-                ctorClazz.getName(),
-                helper.getBoxingClass().getName());
-
-            canMatch = false;
-          }
-        } else {
-          log.info("no primitive type helper for {}", ctorClazz.getName());
-
-          canMatch = false;
-        }
       } else if (ctorClazz.isAssignableFrom(argClazz)) {
-        log.info("non-primitive type argument {}", ctorClazz.getName());
-
         transformers.add(identity);
       } else {
-        log.info("cannot handle type argument {}", ctorClazz.getName());
-
         canMatch = false;
       }
     }
@@ -194,10 +167,18 @@ public class DefaultActorInstanceFactory<T extends UntypedActor> implements BiFu
     return conditionalReturnTransformers(transformers, canMatch);
   }
 
+  private Optional<Function<?, Object>> evaluatePrimitive(final Class<?> ctorClazz, final Class argClazz) {
+    return Optional.ofNullable(primitiveTypeHelpers.get(ctorClazz))
+        .filter(helper -> helper.getBoxingClass()
+            .isAssignableFrom(argClazz))
+        .map(helper -> helper.getValueMapper());
+  }
+
   private Optional<List<Function<?, Object>>> conditionalReturnTransformers(final List<Function<?, Object>> transformer, final boolean shouldPass) {
     return Optional.of(transformer).filter(l -> shouldPass);
   }
 
+  @SuppressWarnings( {"PMD.UseVarargs Priority", "PMD.ConfusingTernary", "PMD.UseVarargs"})
   private Object[] sanitizeObjects(final Object[] args) {
     return args != null ? args : new Object[0];
   }
