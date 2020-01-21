@@ -3,11 +3,15 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
+import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.io.Closeable;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -29,6 +33,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
 
   private ExecutorService userExecutorService;
   private ExecutorService systemExecutorService;
+  private final Queue contextManagements = new ConcurrentLinkedQueue();
 
   @Override
   public String name() {
@@ -56,7 +61,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   }
 
   @SuppressWarnings("PMD.DefaultPackage")
-  /* default */ void start() {
+    /* default */ void start(final List<MessageContextManagement> contextManagements) {
     userExecutorService = new ThreadPoolExecutor(userThreadPoolConfiguration.getMinimalDefaultThreadPoolSize(),
         userThreadPoolConfiguration.getMaximalDefaultThreadPoolSize(),
         userThreadPoolConfiguration.getKeepaliveTime(),
@@ -68,6 +73,8 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         systemThreadPoolConfiguration.getKeepaliveTime(),
         systemThreadPoolConfiguration.getTimeUnit(),
         new LinkedBlockingQueue<>());
+
+    this.contextManagements.addAll(contextManagements);
   }
 
   @Override

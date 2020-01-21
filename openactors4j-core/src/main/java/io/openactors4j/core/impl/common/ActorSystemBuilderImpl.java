@@ -3,7 +3,12 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.ActorSystemBuilder;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
+import io.openactors4j.core.impl.spi.MessageContextManagement;
+import io.openactors4j.core.spi.MessageContextManager;
+import io.openactors4j.core.spi.MessageContextProvider;
 import io.openactors4j.core.untyped.UntypedActor;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -13,7 +18,7 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
   private ThreadPoolConfiguration userThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private ThreadPoolConfiguration systemThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private Consumer<Throwable> unrecoverableErrorHandler = new LoggingUnrecoverableErrorHandler();
-
+  private final List<MessageContextManagement> contextManagements = new LinkedList<>();
 
   @Override
   public ActorSystemBuilder withUserThreadPoolConfiguration(final ThreadPoolConfiguration parameters) {
@@ -51,19 +56,32 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
   }
 
   @Override
+  public ActorSystemBuilder withMessageContextHandler(final MessageContextProvider provider, final MessageContextManager manager) {
+
+    contextManagements.add(MessageContextManagement.builder()
+        .manager(manager)
+        .provider(provider)
+        .build());
+
+    return this;
+  }
+
+  @Override
   @SuppressWarnings("PMD.AvoidCatchingThrowable")
   public ActorSystem build() {
-    final ActorSystemImpl actorSystem = new ActorSystemImpl(name, factory,
-        userThreadPoolConfiguration, systemThreadPoolConfiguration, unrecoverableErrorHandler);
 
     try {
-      actorSystem.start();
+      final ActorSystemImpl actorSystem = new ActorSystemImpl(name, factory,
+          userThreadPoolConfiguration, systemThreadPoolConfiguration, unrecoverableErrorHandler);
+
+
+      actorSystem.start(contextManagements);
+
+      return actorSystem;
     } catch (Throwable t) {
       unrecoverableErrorHandler.accept(t);
 
       throw t;
     }
-
-    return actorSystem;
   }
 }
