@@ -9,6 +9,8 @@ import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,6 +36,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   private ExecutorService userExecutorService;
   private ExecutorService systemExecutorService;
   private final Queue contextManagements = new ConcurrentLinkedQueue();
+  private final List<SystemAddress> systemAddresses = new LinkedList<>();
 
   @Override
   public String name() {
@@ -42,7 +45,9 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
 
   @Override
   public SystemAddress[] adress() {
-    return new SystemAddress[0];
+    final ArrayList<SystemAddress> addresses = new ArrayList<>(systemAddresses);
+
+    return addresses.toArray(new SystemAddress[0]);
   }
 
   @Override
@@ -75,6 +80,12 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         new LinkedBlockingQueue<>());
 
     this.contextManagements.addAll(contextManagements);
+
+    systemAddresses.add(SystemAddressImpl.builder()
+        .hostname("localhost")
+        .systemName(systemName)
+        .transportScheme("local")
+        .build());
   }
 
   @Override
