@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openactors4j.core.boot.ActorSystemFactory;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import java.util.ServiceLoader;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -66,6 +67,52 @@ public class ActorSystemBuilderImplTest {
               .build());
       assertThat(actorSystem.getUserThreadPoolConfiguration())
           .isEqualTo(ThreadPoolConfiguration.builder()
+              .build());
+    }
+  }
+
+  @Test
+  public void shouldCreateActorSystemWithOtherThreadpoolSizings() {
+    try (ActorSystemImpl actorSystem = (ActorSystemImpl) factory.newSystemBuilder()
+        .withSystemThreadPoolConfiguration(ThreadPoolConfiguration.builder()
+            .minimalDefaultThreadPoolSize(5)
+            .maximalDefaultThreadPoolSize(50)
+            .keepaliveTime(60)
+            .timeUnit(TimeUnit.MINUTES)
+            .build())
+        .withUserThreadPoolConfiguration(ThreadPoolConfiguration.builder()
+            .minimalDefaultThreadPoolSize(20)
+            .maximalDefaultThreadPoolSize(200)
+            .keepaliveTime(120)
+            .timeUnit(TimeUnit.MINUTES)
+            .build())
+        .build()) {
+      assertThat(actorSystem).isNotNull();
+      assertThat(actorSystem.name()).isEqualTo("actor-system");
+      assertThat(actorSystem.adress()).isNotNull()
+          .hasSize(1)
+          .extracting(l -> assertThat(l.transport())
+              .hasScheme("actors.local.actor-system")
+              .hasHost("localhost")
+              .hasPath("")
+              .hasPort(0)
+              .hasNoFragment()
+              .hasNoParameters()
+              .hasNoQuery()
+              .hasNoUserInfo());
+      assertThat(actorSystem.getSystemThreadPoolConfiguration())
+          .isEqualTo(ThreadPoolConfiguration.builder()
+              .minimalDefaultThreadPoolSize(5)
+              .maximalDefaultThreadPoolSize(50)
+              .keepaliveTime(60)
+              .timeUnit(TimeUnit.MINUTES)
+              .build());
+      assertThat(actorSystem.getUserThreadPoolConfiguration())
+          .isEqualTo(ThreadPoolConfiguration.builder()
+              .minimalDefaultThreadPoolSize(20)
+              .maximalDefaultThreadPoolSize(200)
+              .keepaliveTime(120)
+              .timeUnit(TimeUnit.MINUTES)
               .build());
     }
   }

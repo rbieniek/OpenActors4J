@@ -21,8 +21,10 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class ActorSystemImpl implements ActorSystem, Closeable {
 
   private final String systemName;
@@ -67,6 +69,11 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
 
   @SuppressWarnings("PMD.DefaultPackage")
     /* default */ void start(final List<MessageContextManagement> contextManagements) {
+      log.info("Starting actor system {} with threadpools user {} and system {}",
+          systemName,
+          userThreadPoolConfiguration,
+          systemThreadPoolConfiguration);
+
     userExecutorService = new ThreadPoolExecutor(userThreadPoolConfiguration.getMinimalDefaultThreadPoolSize(),
         userThreadPoolConfiguration.getMaximalDefaultThreadPoolSize(),
         userThreadPoolConfiguration.getKeepaliveTime(),
@@ -86,6 +93,13 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         .systemName(systemName)
         .transportScheme("local")
         .build());
+
+    log.info("Started actor system {} with bindings {}",
+        systemName,
+        systemAddresses.stream()
+            .map(sa -> sa.transport().toString())
+            .reduce((a,b) -> String.format("%s,%s", a,b))
+            .get());
   }
 
   @Override
