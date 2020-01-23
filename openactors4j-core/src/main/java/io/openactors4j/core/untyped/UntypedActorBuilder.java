@@ -7,6 +7,9 @@ import java.util.function.BiFunction;
 /**
  * Builder interface used to create (from an {@link io.openactors4j.core.common.ActorSystem})
  * or spawn (from an {@link io.openactors4j.core.common.ActorContext} a new actor}
+ * <p>
+ * Either an actor class or an actor instance must be set. Omitting both or providing both will
+ * fail the actor creating via the {@link UntypedActorBuilder#create()} builder method
  */
 public interface UntypedActorBuilder {
   /**
@@ -18,6 +21,16 @@ public interface UntypedActorBuilder {
    * @return this builder instance
    */
   <T extends UntypedActor> UntypedActorBuilder withActorClass(Class<T> actorClass);
+
+  /**
+   * Pass a pre-allocated actor instance to the builder.
+   *
+   * @param actorInstance the pre-allocated actor instance
+   * @param <T>           type parameter to constrain the implementation to be an
+   *                      instance of {@link UntypedActor}
+   * @return this build instance
+   */
+  <T extends UntypedActor> UntypedActorBuilder withActorInstance(T actorInstance);
 
   /**
    * Pass a factory to be used for instance creation. Setting the factory instance her overrides
