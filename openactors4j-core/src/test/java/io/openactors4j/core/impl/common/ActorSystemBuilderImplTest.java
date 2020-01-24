@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.openactors4j.core.boot.ActorSystemFactory;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
+import io.openactors4j.core.common.TimerThreadPoolConfiguration;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,6 +42,9 @@ public class ActorSystemBuilderImplTest {
       assertThat(actorSystem.getUserThreadPoolConfiguration())
           .isEqualTo(ThreadPoolConfiguration.builder()
               .build());
+      assertThat(actorSystem.getTimerThreadPoolConfiguration())
+          .isEqualTo(TimerThreadPoolConfiguration.builder()
+              .build());
     }
   }
 
@@ -68,6 +72,9 @@ public class ActorSystemBuilderImplTest {
       assertThat(actorSystem.getUserThreadPoolConfiguration())
           .isEqualTo(ThreadPoolConfiguration.builder()
               .build());
+      assertThat(actorSystem.getTimerThreadPoolConfiguration())
+          .isEqualTo(TimerThreadPoolConfiguration.builder()
+              .build());
     }
   }
 
@@ -85,6 +92,9 @@ public class ActorSystemBuilderImplTest {
             .maximalDefaultThreadPoolSize(200)
             .keepaliveTime(120)
             .timeUnit(TimeUnit.MINUTES)
+            .build())
+        .withTimerThreadPoolConfiguration(TimerThreadPoolConfiguration.builder()
+            .corePoolSize(50)
             .build())
         .build()) {
       assertThat(actorSystem).isNotNull();
@@ -113,6 +123,10 @@ public class ActorSystemBuilderImplTest {
               .maximalDefaultThreadPoolSize(200)
               .keepaliveTime(120)
               .timeUnit(TimeUnit.MINUTES)
+              .build());
+      assertThat(actorSystem.getTimerThreadPoolConfiguration())
+          .isEqualTo(TimerThreadPoolConfiguration.builder()
+              .corePoolSize(50)
               .build());
     }
   }

@@ -3,6 +3,7 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.ActorSystemBuilder;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
+import io.openactors4j.core.common.TimerThreadPoolConfiguration;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.spi.MessageContextManager;
 import io.openactors4j.core.spi.MessageContextProvider;
@@ -17,12 +18,20 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
   private BiFunction factory = new DefaultActorInstanceFactory();
   private ThreadPoolConfiguration userThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private ThreadPoolConfiguration systemThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
+  private TimerThreadPoolConfiguration timerThreadPoolConfiguration = TimerThreadPoolConfiguration.builder().build();
   private Consumer<Throwable> unrecoverableErrorHandler = new LoggingUnrecoverableErrorHandler();
   private final List<MessageContextManagement> contextManagements = new LinkedList<>();
 
   @Override
   public ActorSystemBuilder withUserThreadPoolConfiguration(final ThreadPoolConfiguration parameters) {
     this.userThreadPoolConfiguration = parameters;
+
+    return this;
+  }
+
+  @Override
+  public ActorSystemBuilder withTimerThreadPoolConfiguration(TimerThreadPoolConfiguration parameters) {
+    this.timerThreadPoolConfiguration = parameters;
 
     return this;
   }
@@ -72,7 +81,8 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
 
     try {
       final ActorSystemImpl actorSystem = new ActorSystemImpl(name, factory,
-          userThreadPoolConfiguration, systemThreadPoolConfiguration, unrecoverableErrorHandler);
+          userThreadPoolConfiguration, systemThreadPoolConfiguration, timerThreadPoolConfiguration,
+          unrecoverableErrorHandler);
 
 
       actorSystem.start(contextManagements);

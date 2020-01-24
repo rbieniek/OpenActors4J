@@ -3,10 +3,12 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
+import io.openactors4j.core.common.TimerThreadPoolConfiguration;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.typed.TypedActorRef;
+import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -16,6 +18,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -28,17 +32,21 @@ import lombok.extern.slf4j.Slf4j;
 public class ActorSystemImpl implements ActorSystem, Closeable {
 
   private final String systemName;
-  private final BiFunction factory;
+  private final BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> factory;
   @Getter
   private final ThreadPoolConfiguration userThreadPoolConfiguration;
   @Getter
   private final ThreadPoolConfiguration systemThreadPoolConfiguration;
+  @Getter
+  private final TimerThreadPoolConfiguration timerThreadPoolConfiguration;
   private final Consumer<Throwable> unrecoverableErrorHandler;
 
   private ExecutorService userExecutorService;
   private ExecutorService systemExecutorService;
+  private ScheduledExecutorService timerExecutorService;
   private final Queue contextManagements = new ConcurrentLinkedQueue();
   private final List<SystemAddress> systemAddresses = new LinkedList<>();
+  private ActorBuildContextImpl actorBuildContext;
 
   @Override
   public String name() {
@@ -86,7 +94,11 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         systemThreadPoolConfiguration.getTimeUnit(),
         new LinkedBlockingQueue<>());
 
+    timerExecutorService = buildTimerScheduler();
+
     this.contextManagements.addAll(contextManagements);
+
+    this.actorBuildContext = new ActorBuildContextImpl(factory);
 
     systemAddresses.add(SystemAddressImpl.builder()
         .hostname("localhost")
@@ -105,6 +117,9 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   @Override
   public void shutown() {
     // TODO: Handle list of returned runnables, log what was abourted
+    timerExecutorService.shutdownNow();
+
+    // TODO: Handle list of returned runnables, log what was abourted
     userExecutorService.shutdownNow();
 
     // TODO: Handle list of returned runnables, log what was abourted
@@ -114,5 +129,25 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   @Override
   public void close() {
     shutown();
+  }
+
+  private ScheduledThreadPoolExecutor buildTimerScheduler() {
+      final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(timerThreadPoolConfiguration.getCorePoolSize());
+
+      executor.setRemoveOnCancelPolicy(true);
+      executor.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+      executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+
+      return executor;
+  }
+
+  @RequiredArgsConstructor
+  private static class ActorBuildContextImpl implements ActorBuilderContext {
+    private final BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> factory;
+
+    @Override
+    public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
+      return factory;
+    }
   }
 }

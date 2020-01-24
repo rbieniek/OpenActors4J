@@ -16,6 +16,8 @@ public interface ActorSystemBuilder {
 
   ActorSystemBuilder withSystemThreadPoolConfiguration(ThreadPoolConfiguration parameters);
 
+  ActorSystemBuilder withTimerThreadPoolConfiguration(TimerThreadPoolConfiguration parameters);
+
   ActorSystemBuilder withUnrecoverableErrorHandler(Consumer<Throwable> handler);
 
   ActorSystemBuilder withMessageContextHandler(MessageContextProvider provider, MessageContextManager manager);
