@@ -3,6 +3,7 @@ package io.openactors4j.core.untyped;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.SupervisionStrategy;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Builder interface used to create (from an {@link io.openactors4j.core.common.ActorSystem})
@@ -25,12 +26,12 @@ public interface UntypedActorBuilder {
   /**
    * Pass a pre-allocated actor instance to the builder.
    *
-   * @param actorInstance the pre-allocated actor instance
+   * @param supplier producing a pre-allocated actor instance
    * @param <T>           type parameter to constrain the implementation to be an
    *                      instance of {@link UntypedActor}
    * @return this build instance
    */
-  <T extends UntypedActor> UntypedActorBuilder withActorInstance(T actorInstance);
+  <T extends UntypedActor> UntypedActorBuilder withSupplier(Supplier<T> supplier);
 
   /**
    * Pass a factory to be used for instance creation. Setting the factory instance her overrides
