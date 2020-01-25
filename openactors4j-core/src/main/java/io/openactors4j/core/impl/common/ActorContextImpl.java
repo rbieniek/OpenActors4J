@@ -15,7 +15,7 @@ public class ActorContextImpl implements ActorContext {
   }
 
   @Override
-  public <T> TypedActorRef<T> spawn(final Behavior<T> behavior, String name) {
+  public <T> TypedActorRef<T> spawn(final Behavior<T> behavior, final String name) {
     return null;
   }
 

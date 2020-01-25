@@ -30,7 +30,7 @@ public class ActorSystemBuilderImpl implements ActorSystemBuilder {
   }
 
   @Override
-  public ActorSystemBuilder withTimerThreadPoolConfiguration(TimerThreadPoolConfiguration parameters) {
+  public ActorSystemBuilder withTimerThreadPoolConfiguration(final TimerThreadPoolConfiguration parameters) {
     this.timerThreadPoolConfiguration = parameters;
 
     return this;

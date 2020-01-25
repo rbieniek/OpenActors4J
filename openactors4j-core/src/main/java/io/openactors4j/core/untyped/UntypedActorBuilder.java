@@ -27,8 +27,8 @@ public interface UntypedActorBuilder {
    * Pass a pre-allocated actor instance to the builder.
    *
    * @param supplier producing a pre-allocated actor instance
-   * @param <T>           type parameter to constrain the implementation to be an
-   *                      instance of {@link UntypedActor}
+   * @param <T>      type parameter to constrain the implementation to be an
+   *                 instance of {@link UntypedActor}
    * @return this build instance
    */
   <T extends UntypedActor> UntypedActorBuilder withSupplier(Supplier<T> supplier);

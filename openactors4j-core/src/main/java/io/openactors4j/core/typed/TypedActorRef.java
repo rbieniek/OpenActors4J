@@ -1,16 +1,10 @@
 package io.openactors4j.core.typed;
 
+import io.openactors4j.core.common.ActorRef;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
-public interface TypedActorRef<T> {
-  /**
-   * Obtain the full name of the actor in the context of its hosting actor system
-   *
-   * @return the fully qualified actor name
-   */
-  String name();
-
+public interface TypedActorRef<T> extends ActorRef {
   /**
    * Interact with the actor in a one-way messaging style
    *

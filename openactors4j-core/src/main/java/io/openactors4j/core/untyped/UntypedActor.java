@@ -13,12 +13,15 @@ public interface UntypedActor {
    *
    * @param context the context information
    */
-  default void setContext(ActorContext context) {};
+  default void setContext(ActorContext context) {
+  }
+
+  ;
 
   /**
    * Reliably pass the lifecycle signal information into the actor.
    * In contrast to the at-most-once message delivery contract, signal delivery is guaranteed.
-   *
+   * <p>
    * The default implementation calls signal handler methods defined in this interface.
    *
    * @param lifecycleSignal the lifecycle signal
@@ -43,7 +46,7 @@ public interface UntypedActor {
   /**
    * Called from the default signal handler on delivery of the {@link Signal#PRE_START} signal
    * which in turn is sent by the actor system before the actor is actually started.
-   *
+   * <p>
    * The default behavior is to call the {@link UntypedActor#onPreRestart()} method
    */
   default void onPreStart() {
@@ -54,7 +57,7 @@ public interface UntypedActor {
    * Called from the default signal handler on delivery of the {@link Signal#PRE_RESTART} signal
    * which in turn is sent by the actor system before the actor is restarted by a restarting
    * supervision strategy.
-   *
+   * <p>
    * The default behavior is to do nothing.
    */
   default void onPreRestart() {
@@ -63,7 +66,7 @@ public interface UntypedActor {
   /**
    * Called from the default signal handler on delivery of the {@link Signal#POST_STOP} signal
    * which in turn is sent by the actor system after the actor is actually stopped.
-   *
+   * <p>
    * The default behavior is to do nothing.
    */
   default void onPostStop() {

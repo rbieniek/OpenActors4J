@@ -1,5 +1,6 @@
 package io.openactors4j.core.untyped;
 
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.NotImplementedException;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
@@ -7,7 +8,7 @@ import java.util.concurrent.CompletionStage;
 /**
  * Handle for accessing an actor
  */
-public interface UntypedActorRef {
+public interface UntypedActorRef extends ActorRef {
   /**
    * An actor reference that should be used if no reply message is expected to be sent by the targetted actor
    *
@@ -39,13 +40,6 @@ public interface UntypedActorRef {
       }
     };
   }
-
-  /**
-   * Obtain the full name of the actor in the context of its hosting actor system
-   *
-   * @return the fully qualified actor name
-   */
-  String name();
 
   /**
    * Interact with the actor in a one-way messaging style

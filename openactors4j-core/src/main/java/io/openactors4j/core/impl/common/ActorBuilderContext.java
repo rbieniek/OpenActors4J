@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.common;
 
+import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.untyped.UntypedActor;
 import java.util.function.BiFunction;
 
@@ -10,4 +11,8 @@ import java.util.function.BiFunction;
  */
 public interface ActorBuilderContext {
   BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory();
+
+  SystemAddress actorAddress(String name);
+
+  boolean haveSiblingWithName(String name);
 }

@@ -5,6 +5,7 @@ import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
+import io.openactors4j.core.impl.untyped.UntypedActorBuilderImpl;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.typed.TypedActorRef;
@@ -46,7 +47,6 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   private ScheduledExecutorService timerExecutorService;
   private final Queue contextManagements = new ConcurrentLinkedQueue();
   private final List<SystemAddress> systemAddresses = new LinkedList<>();
-  private ActorBuildContextImpl actorBuildContext;
 
   @Override
   public String name() {
@@ -72,15 +72,20 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
 
   @Override
   public UntypedActorBuilder newUntypedActor() {
-    return null;
+    return new UntypedActorBuilderImpl(new ActorBuilderContext() {
+      @Override
+      public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
+        return factory;
+      }
+    });
   }
 
   @SuppressWarnings("PMD.DefaultPackage")
     /* default */ void start(final List<MessageContextManagement> contextManagements) {
-      log.info("Starting actor system {} with threadpools user {} and system {}",
-          systemName,
-          userThreadPoolConfiguration,
-          systemThreadPoolConfiguration);
+    log.info("Starting actor system {} with threadpools user {} and system {}",
+        systemName,
+        userThreadPoolConfiguration,
+        systemThreadPoolConfiguration);
 
     userExecutorService = new ThreadPoolExecutor(userThreadPoolConfiguration.getMinimalDefaultThreadPoolSize(),
         userThreadPoolConfiguration.getMaximalDefaultThreadPoolSize(),
@@ -98,8 +103,6 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
 
     this.contextManagements.addAll(contextManagements);
 
-    this.actorBuildContext = new ActorBuildContextImpl(factory);
-
     systemAddresses.add(SystemAddressImpl.builder()
         .hostname("localhost")
         .systemName(systemName)
@@ -110,7 +113,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         systemName,
         systemAddresses.stream()
             .map(sa -> sa.transport().toString())
-            .reduce((a,b) -> String.format("%s,%s", a,b))
+            .reduce((a, b) -> String.format("%s,%s", a, b))
             .get());
   }
 
@@ -132,22 +135,12 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   }
 
   private ScheduledThreadPoolExecutor buildTimerScheduler() {
-      final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(timerThreadPoolConfiguration.getCorePoolSize());
+    final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(timerThreadPoolConfiguration.getCorePoolSize());
 
-      executor.setRemoveOnCancelPolicy(true);
-      executor.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
-      executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+    executor.setRemoveOnCancelPolicy(true);
+    executor.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+    executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
 
-      return executor;
-  }
-
-  @RequiredArgsConstructor
-  private static class ActorBuildContextImpl implements ActorBuilderContext {
-    private final BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> factory;
-
-    @Override
-    public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
-      return factory;
-    }
+    return executor;
   }
 }

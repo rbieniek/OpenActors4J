@@ -79,11 +79,11 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
   @Override
   public UntypedActorBuilder withNamePrefix(final String actorNamePrefix) {
-    this.name = of((new StringBuilder()
+    this.name = of(new StringBuilder()
         .append(actorNamePrefix)
         .append('-')
         .append(UUID.randomUUID().toString().replaceAll("-", ""))
-        .toString()));
+        .toString());
     return this;
   }
 

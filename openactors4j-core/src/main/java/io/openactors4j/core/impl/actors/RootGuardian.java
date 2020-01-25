@@ -10,13 +10,13 @@ public class RootGuardian implements UntypedActor {
   @Override
   public void onPreStart() {
     this.actorContext.spawnUntypedActor()
-        .withActorInstance(new SystemGuardian())
+        .withSupplier(() -> new SystemGuardian())
         .withAbsoluteName("system")
         .withMailbox(new UnboundedMailbox<>())
         .create();
 
     this.actorContext.spawnUntypedActor()
-        .withActorInstance(new UserGuardian())
+        .withSupplier(() -> new UserGuardian())
         .withAbsoluteName("user")
         .withMailbox(new UnboundedMailbox<>())
         .create();

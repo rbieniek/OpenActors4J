@@ -125,11 +125,12 @@ public class DefaultActorInstanceFactoryTest {
   public void shouldInstantiateWithArray() {
     ClassWithArray instance = new DefaultActorInstanceFactory<ClassWithArray>()
         .apply(ClassWithArray.class,
-            new Object[] { new int[] { 10 }});
+            new Object[] {new int[] {10}});
 
     assertThat(instance).isNotNull();
     assertThat(instance.getArray()).isNotEmpty().containsOnly(10);
   }
+
   public static class TestUntypedActor implements UntypedActor {
     @Override
     public void setContext(ActorContext context) {

@@ -130,4 +130,11 @@ public class ActorSystemBuilderImplTest {
               .build());
     }
   }
+
+  @Test
+  public void shouldProduceUntypedActorBuilder() {
+    try (ActorSystemImpl actorSystem = (ActorSystemImpl) factory.newSystemBuilder().build()) {
+      assertThat(actorSystem).isNotNull();
+    }
+  }
 }
