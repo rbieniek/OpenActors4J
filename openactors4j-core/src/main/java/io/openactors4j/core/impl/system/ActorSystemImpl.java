@@ -1,9 +1,11 @@
-package io.openactors4j.core.impl.common;
+package io.openactors4j.core.impl.system;
 
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
+import io.openactors4j.core.impl.common.ActorBuilderContext;
+import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.impl.untyped.UntypedActorBuilderImpl;
 import io.openactors4j.core.typed.Behavior;
@@ -76,6 +78,16 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
       @Override
       public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
         return factory;
+      }
+
+      @Override
+      public SystemAddress actorAddress(String name) {
+        return null;
+      }
+
+      @Override
+      public boolean haveSiblingWithName(String name) {
+        return false;
       }
     });
   }

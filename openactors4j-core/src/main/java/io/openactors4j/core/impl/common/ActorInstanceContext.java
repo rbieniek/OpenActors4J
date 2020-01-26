@@ -1,5 +1,7 @@
 package io.openactors4j.core.impl.common;
 
+import io.openactors4j.core.impl.messaging.Message;
+
 /**
  * Internal interface to provide contextual information and lifecycle methods
  * held by the actor system to the
@@ -19,4 +21,6 @@ public interface ActorInstanceContext {
    * @param <T> the message type
    */
   <T> void undeliverableMessage(Message<T> message);
+
+
 }

@@ -4,4 +4,6 @@ import java.net.URI;
 
 public interface SystemAddress {
   URI transport();
+
+  SystemAddress validate();
 }

@@ -1,5 +1,6 @@
 module openactors4j.core {
   requires org.slf4j;
+  requires org.apache.commons.lang3;
 
   requires static lombok;
   requires static org.mapstruct.processor;

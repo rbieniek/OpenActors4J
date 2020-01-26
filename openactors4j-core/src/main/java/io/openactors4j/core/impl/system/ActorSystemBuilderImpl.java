@@ -1,9 +1,11 @@
-package io.openactors4j.core.impl.common;
+package io.openactors4j.core.impl.system;
 
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.ActorSystemBuilder;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
+import io.openactors4j.core.impl.common.DefaultActorInstanceFactory;
+import io.openactors4j.core.impl.common.LoggingUnrecoverableErrorHandler;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.spi.MessageContextManager;
 import io.openactors4j.core.spi.MessageContextProvider;

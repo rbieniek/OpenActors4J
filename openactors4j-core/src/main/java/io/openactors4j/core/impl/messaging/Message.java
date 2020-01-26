@@ -1,4 +1,4 @@
-package io.openactors4j.core.impl.common;
+package io.openactors4j.core.impl.messaging;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
