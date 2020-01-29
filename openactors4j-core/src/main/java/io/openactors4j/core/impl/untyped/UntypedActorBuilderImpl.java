@@ -2,11 +2,14 @@ package io.openactors4j.core.impl.untyped;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.SupervisionStrategy;
-import io.openactors4j.core.impl.common.ActorBuilderContext;
+import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import io.openactors4j.core.untyped.UntypedActorRef;
@@ -72,13 +75,21 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
   @Override
   public UntypedActorBuilder withAbsoluteName(final String actorName) {
-    this.name = of(actorName);
+    this.name = ofNullable(stripToNull(actorName));
+
+    if(isBlank(this.name.get())) {
+      throw new IllegalArgumentException("Actor name must not be empty or null");
+    }
 
     return this;
   }
 
   @Override
   public UntypedActorBuilder withNamePrefix(final String actorNamePrefix) {
+    if(isBlank(stripToNull(actorNamePrefix))) {
+      throw new IllegalArgumentException("Actor name must not be empty or null");
+    }
+
     this.name = of(new StringBuilder()
         .append(actorNamePrefix)
         .append('-')
@@ -97,6 +108,19 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
       throw new IllegalArgumentException("Both actor class and instance supplier specified");
     }
 
-    return null;
+    if(name.isEmpty()) {
+      throw new IllegalArgumentException("Actor name must be specified");
+    }
+
+    if(actorBuilderContext.haveSiblingWithName(name.get())) {
+      throw new IllegalArgumentException("Actor with name '" + name.get() + "' already present");
+    };
+
+    final Supplier<? extends UntypedActor> actorSupplier = this.supplier.orElse(() ->
+        (UntypedActor)factory
+            .orElse(actorBuilderContext.defaultInstanceFactory())
+            .apply(actorClass.get(), arguments.orElse(null)));
+
+    return actorBuilderContext.spawnUntypedActor(this.name.get(), actorSupplier, mailbox, supervisionStrategy);
   }
 }

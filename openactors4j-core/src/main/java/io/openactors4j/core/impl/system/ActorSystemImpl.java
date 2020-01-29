@@ -1,10 +1,11 @@
 package io.openactors4j.core.impl.system;
 
 import io.openactors4j.core.common.ActorSystem;
+import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
-import io.openactors4j.core.impl.common.ActorBuilderContext;
 import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.impl.untyped.UntypedActorBuilderImpl;
@@ -13,10 +14,12 @@ import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
+import io.openactors4j.core.untyped.UntypedActorRef;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +29,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,17 +80,18 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   public UntypedActorBuilder newUntypedActor() {
     return new UntypedActorBuilderImpl(new ActorBuilderContext() {
       @Override
+      public UntypedActorRef spawnUntypedActor(final String name, Supplier<? extends UntypedActor> supplier,
+                                               final Optional<Mailbox> mailbox, final Optional<SupervisionStrategy> supervisionStrategy) {
+        return null;
+      }
+
+      @Override
       public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
         return factory;
       }
 
       @Override
-      public SystemAddress actorAddress(String name) {
-        return null;
-      }
-
-      @Override
-      public boolean haveSiblingWithName(String name) {
+      public boolean haveSiblingWithName(final String name) {
         return false;
       }
     });
