@@ -18,7 +18,7 @@ public interface ActorInstanceContext {
    * The calling actor implementation needs to give an unrouteable message back to the actor system
    *
    * @param message the message with routing slips and message payload
-   * @param <T> the message type
+   * @param <T>     the message type
    */
   <T> void undeliverableMessage(Message<T> message);
 

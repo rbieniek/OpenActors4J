@@ -16,13 +16,13 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class ActorSystemBuilderImpl implements ActorSystemBuilder {
+  private final List<MessageContextManagement> contextManagements = new LinkedList<>();
   private String name = "actor-system";
   private BiFunction factory = new DefaultActorInstanceFactory();
   private ThreadPoolConfiguration userThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private ThreadPoolConfiguration systemThreadPoolConfiguration = ThreadPoolConfiguration.builder().build();
   private TimerThreadPoolConfiguration timerThreadPoolConfiguration = TimerThreadPoolConfiguration.builder().build();
   private Consumer<Throwable> unrecoverableErrorHandler = new LoggingUnrecoverableErrorHandler();
-  private final List<MessageContextManagement> contextManagements = new LinkedList<>();
 
   @Override
   public ActorSystemBuilder withUserThreadPoolConfiguration(final ThreadPoolConfiguration parameters) {

@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openactors4j.core.boot.ActorSystemFactory;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
-import io.openactors4j.core.impl.system.ActorSystemImpl;
 import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;

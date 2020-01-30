@@ -23,6 +23,7 @@ public interface ActorBuilderContext {
 
   /**
    * Spawn a new untyped actor in the actor system
+   *
    * @param name
    * @param supplier
    * @param mailbox

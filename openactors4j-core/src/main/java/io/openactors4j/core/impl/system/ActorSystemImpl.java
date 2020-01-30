@@ -47,12 +47,11 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   @Getter
   private final TimerThreadPoolConfiguration timerThreadPoolConfiguration;
   private final Consumer<Throwable> unrecoverableErrorHandler;
-
+  private final Queue contextManagements = new ConcurrentLinkedQueue();
+  private final List<SystemAddress> systemAddresses = new LinkedList<>();
   private ExecutorService userExecutorService;
   private ExecutorService systemExecutorService;
   private ScheduledExecutorService timerExecutorService;
-  private final Queue contextManagements = new ConcurrentLinkedQueue();
-  private final List<SystemAddress> systemAddresses = new LinkedList<>();
 
   @Override
   public String name() {

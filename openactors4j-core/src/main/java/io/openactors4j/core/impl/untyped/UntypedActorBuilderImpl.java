@@ -77,7 +77,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   public UntypedActorBuilder withAbsoluteName(final String actorName) {
     this.name = ofNullable(stripToNull(actorName));
 
-    if(isBlank(this.name.get())) {
+    if (isBlank(this.name.get())) {
       throw new IllegalArgumentException("Actor name must not be empty or null");
     }
 
@@ -86,7 +86,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
   @Override
   public UntypedActorBuilder withNamePrefix(final String actorNamePrefix) {
-    if(isBlank(stripToNull(actorNamePrefix))) {
+    if (isBlank(stripToNull(actorNamePrefix))) {
       throw new IllegalArgumentException("Actor name must not be empty or null");
     }
 
@@ -108,16 +108,17 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
       throw new IllegalArgumentException("Both actor class and instance supplier specified");
     }
 
-    if(name.isEmpty()) {
+    if (name.isEmpty()) {
       throw new IllegalArgumentException("Actor name must be specified");
     }
 
-    if(actorBuilderContext.haveSiblingWithName(name.get())) {
+    if (actorBuilderContext.haveSiblingWithName(name.get())) {
       throw new IllegalArgumentException("Actor with name '" + name.get() + "' already present");
-    };
+    }
+    ;
 
     final Supplier<? extends UntypedActor> actorSupplier = this.supplier.orElse(() ->
-        (UntypedActor)factory
+        (UntypedActor) factory
             .orElse(actorBuilderContext.defaultInstanceFactory())
             .apply(actorClass.get(), arguments.orElse(null)));
 
