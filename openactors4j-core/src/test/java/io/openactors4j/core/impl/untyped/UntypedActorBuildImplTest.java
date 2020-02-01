@@ -55,7 +55,7 @@ public class UntypedActorBuildImplTest {
     private final Supplier<Pattern> expectedActorNamePattern = () -> Pattern.compile("^$");
 
     @Builder.Default
-    private Set<String> siblings = Collections.emptySet();
+    private final Set<String> siblings = Collections.emptySet();
 
     @Override
     public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
