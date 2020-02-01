@@ -1,17 +1,18 @@
 package io.openactors4j.core.impl.untyped;
 
+import static java.util.regex.Pattern.compile;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.SupervisionStrategy;
+import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import io.openactors4j.core.untyped.UntypedActorRef;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -21,26 +22,274 @@ import java.util.regex.Pattern;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Singular;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class UntypedActorBuildImplTest {
 
   @Test
-  public void shouldSpawnActorWithDefaultMailboxWithDefaultSupervision() {
+  public void shouldSpawnActorWithSupplierWithDefaultMailboxWithDefaultSupervision() {
     final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
         TestActorBuilderContext.builder()
-            .expectedActorNamePattern(() -> Pattern.compile("^test-actor$"))
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
             .shoudHaveEmptySupervisionStrategy(true)
-            .shoudHaveEmptyMailbox(true).build()
+            .shoudHaveEmptyMailbox(true)
+            .build()
     );
 
     assertThat(actorBuilder
         .withAbsoluteName("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
         .create())
         .isNotNull()
         .isInstanceOf(UntypedActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldSpawnActorWithActorClassWithDefaultMailboxWithDefaultSupervision() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withAbsoluteName("test-actor")
+        .withActorClass(TestUntypedActor.class)
+        .withArguments("test-actor")
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldSpawnActorWithSupplierWithCustomMailboxWithDefaultSupervision() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(false)
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withAbsoluteName("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
+        .withMailbox(new UnboundedMailbox<>())
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldSpawnActorWithSupplierWithDefaultMailboxWithDefaultSupervisionWithNamePrefix() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor#[a-f0-9]{32}$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withNamePrefix("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .matches(s -> s.startsWith("test-actor#"));
+  }
+
+  @Test
+  public void shouldSpawnActorWithSupplierWithDefaultMailboxWithCustomSupervision() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(false)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withAbsoluteName("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
+        .withSupervisionStrategy(new SupervisionStrategy() {
+        })
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldFailWithDuplicateName() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .sibling("test-actor")
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("test-actor")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithBothActorClassAndSupplier() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("test-actor")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .withActorClass(TestUntypedActor.class)
+            .withArguments("test-actor")
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithNeitherActorClassNorSupplier() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("test-actor")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .withActorClass(TestUntypedActor.class)
+            .withArguments("test-actor")
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithoutName() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithBlankName() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("    ")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithEmptyName() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
+  }
+
+
+  @Test
+  public void shouldFailWithBlankNamePrefix() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withNamePrefix("    ")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
+  }
+
+  @Test
+  public void shouldFailWithEmptyNamePrefix() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withNamePrefix("")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .create());
   }
 
   @Builder
@@ -52,10 +301,10 @@ public class UntypedActorBuildImplTest {
     private final boolean shoudHaveEmptySupervisionStrategy = false;
 
     @Builder.Default
-    private final Supplier<Pattern> expectedActorNamePattern = () -> Pattern.compile("^$");
+    private final Supplier<Pattern> expectedActorNamePattern = () -> compile("^$");
 
-    @Builder.Default
-    private final Set<String> siblings = Collections.emptySet();
+    @Singular
+    private final Set<String> siblings;
 
     @Override
     public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
@@ -70,7 +319,10 @@ public class UntypedActorBuildImplTest {
     }
 
     @Override
-    public UntypedActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier, Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy) {
+    public UntypedActorRef spawnUntypedActor(final String name,
+                                             final Supplier<? extends UntypedActor> supplier,
+                                             final Optional<Mailbox> mailbox,
+                                             final Optional<SupervisionStrategy> supervisionStrategy) {
       if (shoudHaveEmptyMailbox) {
         assertThat(mailbox).isEmpty();
       } else {
@@ -83,7 +335,11 @@ public class UntypedActorBuildImplTest {
         assertThat(supervisionStrategy).isNotEmpty();
       }
 
-      assertThat(expectedActorNamePattern.get().matcher(name).matches()).isTrue();
+      assertThat(expectedActorNamePattern.get().matcher(name).matches())
+          .overridingErrorMessage("expteced match on name pattern '%s', got name '%s'",
+              expectedActorNamePattern.get(),
+              name)
+          .isTrue();
 
       assertThat(supplier.get()).isInstanceOf(TestUntypedActor.class);
 
@@ -105,14 +361,14 @@ public class UntypedActorBuildImplTest {
 
         @Override
         public String name() {
-          return null;
+          return name;
         }
       };
     }
 
     @Override
-    public boolean haveSiblingWithName(String name) {
-      return false;
+    public boolean haveSiblingWithName(final String name) {
+      return siblings.contains(name);
     }
   }
 

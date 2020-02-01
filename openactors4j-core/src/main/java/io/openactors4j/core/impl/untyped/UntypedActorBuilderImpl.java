@@ -77,7 +77,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   public UntypedActorBuilder withAbsoluteName(final String actorName) {
     this.name = ofNullable(stripToNull(actorName));
 
-    if (isBlank(this.name.get())) {
+    if (this.name.isEmpty() || isBlank(this.name.get())) {
       throw new IllegalArgumentException("Actor name must not be empty or null");
     }
 
@@ -92,8 +92,8 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
     this.name = of(new StringBuilder()
         .append(actorNamePrefix)
-        .append('-')
-        .append(UUID.randomUUID().toString().replaceAll("-", ""))
+        .append('#')
+        .append(UUID.randomUUID().toString().replaceAll("-", "").toLowerCase())
         .toString());
     return this;
   }
