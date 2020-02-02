@@ -8,6 +8,7 @@ import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 
 import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.untyped.UntypedActor;
@@ -30,6 +31,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   private Optional<SupervisionStrategy> supervisionStrategy = empty();
   private Optional<Mailbox> mailbox = empty();
   private Optional<String> name = empty();
+  private Optional<StartupMode> startupMode = empty();
 
   @Override
   public <T extends UntypedActor> UntypedActorBuilder withActorClass(final Class<T> actorClass) {
@@ -85,6 +87,13 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   }
 
   @Override
+  public UntypedActorBuilder withStartupMode(StartupMode startupMode) {
+    this.startupMode = of(startupMode);
+
+    return this;
+  }
+
+  @Override
   public UntypedActorBuilder withNamePrefix(final String actorNamePrefix) {
     if (isBlank(stripToNull(actorNamePrefix))) {
       throw new IllegalArgumentException("Actor name must not be empty or null");
@@ -122,6 +131,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
             .orElse(actorBuilderContext.defaultInstanceFactory())
             .apply(actorClass.get(), arguments.orElse(null)));
 
-    return actorBuilderContext.spawnUntypedActor(this.name.get(), actorSupplier, mailbox, supervisionStrategy);
+    return actorBuilderContext.spawnUntypedActor(this.name.get(), actorSupplier, mailbox,
+        supervisionStrategy, startupMode);
   }
 }

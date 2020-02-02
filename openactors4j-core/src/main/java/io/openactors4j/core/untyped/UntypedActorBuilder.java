@@ -1,6 +1,7 @@
 package io.openactors4j.core.untyped;
 
 import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -71,6 +72,7 @@ public interface UntypedActorBuilder {
    * <p>
    * If this method is not used on the builder, it defaults
    * to {@link io.openactors4j.core.common.UnboundedMailbox}
+   * </p>
    *
    * @param mailbox the {@link Mailbox} implementation to be used
    * @return this builder instance
@@ -93,11 +95,24 @@ public interface UntypedActorBuilder {
    * Set the name prefix for the created actor.
    * <p>
    * The actor name will be constructed from this prefix and an unique numeric ID value
+   * </p>
    *
    * @param actorNamePrefix the prefix part of the unique actor name
    * @return this builder instance
    */
   UntypedActorBuilder withNamePrefix(String actorNamePrefix);
+
+  /**
+   * Set the {@link StartupMode} for the actor.
+   * <p>
+   *  The default behavior is to start the actor immediately on creation by using the default
+   *  value {@link StartupMode#IMMEDIATE}
+   * </p>
+   *
+   * @param startupMode
+   * @return this builder instance
+   */
+  UntypedActorBuilder withStartupMode(StartupMode startupMode);
 
   /**
    * Create the actor instance based upon the parametrization given by this build instance

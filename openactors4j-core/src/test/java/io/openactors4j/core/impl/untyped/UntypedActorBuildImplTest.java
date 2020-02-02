@@ -1,11 +1,14 @@
 package io.openactors4j.core.impl.untyped;
 
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.regex.Pattern.compile;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
@@ -43,6 +46,54 @@ public class UntypedActorBuildImplTest {
         .withSupplier(() -> TestUntypedActor.builder()
             .tag("test-actor")
             .build())
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldSpawnActorWithSupplierWithDefaultMailboxWithDefaultSupervisionWithDelayedStartup() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .startupMode(of(StartupMode.DELAYED))
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withAbsoluteName("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
+        .withStartupMode(StartupMode.DELAYED)
+        .create())
+        .isNotNull()
+        .isInstanceOf(UntypedActorRef.class)
+        .extracting(ar -> ar.name())
+        .isEqualTo("test-actor");
+  }
+
+  @Test
+  public void shouldSpawnActorWithSupplierWithDefaultMailboxWithDefaultSupervisionWithImmediateStartup() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(true)
+            .shoudHaveEmptyMailbox(true)
+            .startupMode(of(StartupMode.IMMEDIATE))
+            .build()
+    );
+
+    assertThat(actorBuilder
+        .withAbsoluteName("test-actor")
+        .withSupplier(() -> TestUntypedActor.builder()
+            .tag("test-actor")
+            .build())
+        .withStartupMode(StartupMode.IMMEDIATE)
         .create())
         .isNotNull()
         .isInstanceOf(UntypedActorRef.class)
@@ -306,6 +357,9 @@ public class UntypedActorBuildImplTest {
     @Singular
     private final Set<String> siblings;
 
+    @Builder.Default
+    private final Optional<StartupMode> startupMode = empty();
+
     @Override
     public BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory() {
       return (clazz, params) -> {
@@ -322,7 +376,8 @@ public class UntypedActorBuildImplTest {
     public UntypedActorRef spawnUntypedActor(final String name,
                                              final Supplier<? extends UntypedActor> supplier,
                                              final Optional<Mailbox> mailbox,
-                                             final Optional<SupervisionStrategy> supervisionStrategy) {
+                                             final Optional<SupervisionStrategy> supervisionStrategy,
+                                             final Optional<StartupMode> startupMode) {
       if (shoudHaveEmptyMailbox) {
         assertThat(mailbox).isEmpty();
       } else {
@@ -333,6 +388,12 @@ public class UntypedActorBuildImplTest {
         assertThat(supervisionStrategy).isEmpty();
       } else {
         assertThat(supervisionStrategy).isNotEmpty();
+      }
+
+      if (this.startupMode.isEmpty()) {
+        assertThat(this.startupMode.isEmpty()).isEqualTo(startupMode.isEmpty());
+      } else {
+        assertThat(this.startupMode.get()).isEqualByComparingTo(startupMode.get());
       }
 
       assertThat(expectedActorNamePattern.get().matcher(name).matches())

@@ -1,6 +1,7 @@
 package io.openactors4j.core.impl.system;
 
 import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorRef;
@@ -31,7 +32,14 @@ public interface ActorBuilderContext {
    * @return
    */
   public UntypedActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
-                                           Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy);
+                                           Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy,
+                                           Optional<StartupMode> startupMode);
 
+  /**
+   * Determine if there is already a sibling actor existing with an equal name
+   *
+   * @param name the actor name to be checked
+   * @return <b>true</b> if a sibling with the same name already exists, <b>false</b> otherwise
+   */
   boolean haveSiblingWithName(String name);
 }
