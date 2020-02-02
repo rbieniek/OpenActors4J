@@ -1,7 +1,6 @@
 package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.impl.messaging.Message;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Internal interface to provide contextual information and lifecycle methods

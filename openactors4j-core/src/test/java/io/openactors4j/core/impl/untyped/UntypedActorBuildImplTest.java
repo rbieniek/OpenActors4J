@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 import io.openactors4j.core.common.ActorContext;
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
@@ -14,7 +15,6 @@ import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
-import io.openactors4j.core.untyped.UntypedActorRef;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -48,7 +48,7 @@ public class UntypedActorBuildImplTest {
             .build())
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -72,7 +72,7 @@ public class UntypedActorBuildImplTest {
         .withStartupMode(StartupMode.DELAYED)
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -96,7 +96,7 @@ public class UntypedActorBuildImplTest {
         .withStartupMode(StartupMode.IMMEDIATE)
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -117,7 +117,7 @@ public class UntypedActorBuildImplTest {
         .withArguments("test-actor")
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -140,7 +140,7 @@ public class UntypedActorBuildImplTest {
         .withMailbox(new UnboundedMailbox<>())
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -162,7 +162,7 @@ public class UntypedActorBuildImplTest {
             .build())
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .matches(s -> s.startsWith("test-actor#"));
   }
@@ -186,7 +186,7 @@ public class UntypedActorBuildImplTest {
         })
         .create())
         .isNotNull()
-        .isInstanceOf(UntypedActorRef.class)
+        .isInstanceOf(ActorRef.class)
         .extracting(ar -> ar.name())
         .isEqualTo("test-actor");
   }
@@ -345,7 +345,7 @@ public class UntypedActorBuildImplTest {
 
   @Builder
   @RequiredArgsConstructor
-  private static final class TestActorBuilderContext implements ActorBuilderContext {
+  private static final class TestActorBuilderContext implements ActorBuilderContext<Object> {
     @Builder.Default
     private final boolean shoudHaveEmptyMailbox = false;
     @Builder.Default
@@ -373,11 +373,11 @@ public class UntypedActorBuildImplTest {
     }
 
     @Override
-    public UntypedActorRef spawnUntypedActor(final String name,
-                                             final Supplier<? extends UntypedActor> supplier,
-                                             final Optional<Mailbox> mailbox,
-                                             final Optional<SupervisionStrategy> supervisionStrategy,
-                                             final Optional<StartupMode> startupMode) {
+    public ActorRef spawnUntypedActor(final String name,
+                                      final Supplier<? extends UntypedActor> supplier,
+                                      final Optional<Mailbox> mailbox,
+                                      final Optional<SupervisionStrategy> supervisionStrategy,
+                                      final Optional<StartupMode> startupMode) {
       if (shoudHaveEmptyMailbox) {
         assertThat(mailbox).isEmpty();
       } else {
@@ -404,10 +404,10 @@ public class UntypedActorBuildImplTest {
 
       assertThat(supplier.get()).isInstanceOf(TestUntypedActor.class);
 
-      return new UntypedActorRef() {
+      return new ActorRef<Object>() {
+
         @Override
-        public UntypedActorRef tell(Object message, UntypedActorRef sender) {
-          return null;
+        public void tell(Object message, ActorRef sender) {
         }
 
         @Override

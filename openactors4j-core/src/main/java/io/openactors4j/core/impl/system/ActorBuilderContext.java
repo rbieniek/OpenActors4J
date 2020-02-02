@@ -1,10 +1,10 @@
 package io.openactors4j.core.impl.system;
 
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.untyped.UntypedActor;
-import io.openactors4j.core.untyped.UntypedActorRef;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  * (untyped) actor builder implementation without fully exposing the actor system to the
  * builder implementation
  */
-public interface ActorBuilderContext {
+public interface ActorBuilderContext<T> {
   /**
    * Obtain the default actor instance factory configured in the surrounding actor system
    *
@@ -31,9 +31,9 @@ public interface ActorBuilderContext {
    * @param supervisionStrategy
    * @return
    */
-  public UntypedActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
-                                           Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy,
-                                           Optional<StartupMode> startupMode);
+  public ActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
+                                    Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy,
+                                    Optional<StartupMode> startupMode);
 
   /**
    * Determine if there is already a sibling actor existing with an equal name

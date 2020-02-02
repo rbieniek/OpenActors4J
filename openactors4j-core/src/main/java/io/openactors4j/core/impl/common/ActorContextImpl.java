@@ -1,11 +1,10 @@
 package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.common.ActorContext;
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.BehaviorBuilder;
-import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
-import io.openactors4j.core.untyped.UntypedActorRef;
 import java.util.Optional;
 
 public class ActorContextImpl implements ActorContext {
@@ -15,7 +14,7 @@ public class ActorContextImpl implements ActorContext {
   }
 
   @Override
-  public <T> TypedActorRef<T> spawn(final Behavior<T> behavior, final String name) {
+  public <T> ActorRef<T> spawn(final Behavior<T> behavior, final String name) {
     return null;
   }
 
@@ -25,17 +24,12 @@ public class ActorContextImpl implements ActorContext {
   }
 
   @Override
-  public <T> Optional<TypedActorRef<T>> lookupTypedActor(final String name) {
+  public <T> Optional<ActorRef<T>> lookupActor(final String name) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<UntypedActorRef> lookupUntypedActor(final String name) {
-    return Optional.empty();
-  }
-
-  @Override
-  public UntypedActorRef sender() {
+  public ActorRef sender() {
     return null;
   }
 }

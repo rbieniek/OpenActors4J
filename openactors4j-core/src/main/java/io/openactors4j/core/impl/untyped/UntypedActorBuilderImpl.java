@@ -7,13 +7,13 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.stripToNull;
 
 
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
-import io.openactors4j.core.untyped.UntypedActorRef;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -108,7 +108,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   }
 
   @Override
-  public UntypedActorRef create() {
+  public ActorRef create() {
     if (actorClass.isEmpty() && supplier.isEmpty()) {
       throw new IllegalArgumentException("Neither actor class nor instance supplier specified");
     }

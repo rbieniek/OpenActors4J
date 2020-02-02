@@ -1,5 +1,6 @@
 package io.openactors4j.core.untyped;
 
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
@@ -105,8 +106,8 @@ public interface UntypedActorBuilder {
   /**
    * Set the {@link StartupMode} for the actor.
    * <p>
-   *  The default behavior is to start the actor immediately on creation by using the default
-   *  value {@link StartupMode#IMMEDIATE}
+   * The default behavior is to start the actor immediately on creation by using the default
+   * value {@link StartupMode#IMMEDIATE}
    * </p>
    *
    * @param startupMode
@@ -119,5 +120,5 @@ public interface UntypedActorBuilder {
    *
    * @return a reference to the created actor
    */
-  UntypedActorRef create();
+  ActorRef create();
 }

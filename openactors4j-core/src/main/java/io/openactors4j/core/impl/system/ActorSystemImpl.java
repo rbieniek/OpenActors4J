@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.system;
 
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
@@ -12,10 +13,8 @@ import io.openactors4j.core.impl.spi.MessageContextManagement;
 import io.openactors4j.core.impl.untyped.UntypedActorBuilderImpl;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.Behaviors;
-import io.openactors4j.core.typed.TypedActorRef;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
-import io.openactors4j.core.untyped.UntypedActorRef;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -72,18 +71,18 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   }
 
   @Override
-  public <T, C extends Behavior<T>> TypedActorRef<T> spawn(final Behavior<T> behavior, final String name) {
+  public <T, C extends Behavior<T>> ActorRef<T> spawn(final Behavior<T> behavior, final String name) {
     return null;
   }
 
   @Override
   public UntypedActorBuilder newUntypedActor() {
-    return new UntypedActorBuilderImpl(new ActorBuilderContext() {
+    return new UntypedActorBuilderImpl(new ActorBuilderContext<Object>() {
       @Override
-      public UntypedActorRef spawnUntypedActor(final String name, Supplier<? extends UntypedActor> supplier,
-                                               final Optional<Mailbox> mailbox,
-                                               final Optional<SupervisionStrategy> supervisionStrategy,
-                                               final Optional<StartupMode> startupMode) {
+      public ActorRef spawnUntypedActor(final String name, Supplier<? extends UntypedActor> supplier,
+                                        final Optional<Mailbox> mailbox,
+                                        final Optional<SupervisionStrategy> supervisionStrategy,
+                                        final Optional<StartupMode> startupMode) {
         return null;
       }
 
