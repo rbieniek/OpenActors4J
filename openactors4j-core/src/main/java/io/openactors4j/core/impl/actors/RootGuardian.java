@@ -13,12 +13,14 @@ public class RootGuardian implements UntypedActor {
         .withSupplier(() -> new SystemGuardian())
         .withAbsoluteName("system")
         .withMailbox(new UnboundedMailbox<>())
+        .withSupervisionStrategy(actorContext.supervisionStrategies().restart())
         .create();
 
     this.actorContext.newUntypedActorBuilder()
         .withSupplier(() -> new UserGuardian())
         .withAbsoluteName("user")
         .withMailbox(new UnboundedMailbox<>())
+        .withSupervisionStrategy(actorContext.supervisionStrategies().restart())
         .create();
   }
 

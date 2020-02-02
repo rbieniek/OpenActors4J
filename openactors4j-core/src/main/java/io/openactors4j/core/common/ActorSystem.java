@@ -4,6 +4,9 @@ import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.Behaviors;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 
+/**
+ *
+ */
 public interface ActorSystem {
   String name();
 
@@ -14,6 +17,8 @@ public interface ActorSystem {
   <T, C extends Behavior<T>> ActorRef<T> spawn(Behavior<T> behavior, String name);
 
   UntypedActorBuilder newUntypedActor();
+
+  SupervisionStrategies supervisionStrategies();
 
   void shutown();
 }

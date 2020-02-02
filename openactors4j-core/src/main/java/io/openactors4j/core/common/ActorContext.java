@@ -12,6 +12,8 @@ public interface ActorContext {
 
   <T> ActorRef<T> spawn(Behavior<T> behavior, String name);
 
+  SupervisionStrategies supervisionStrategies();
+
   <T> Optional<ActorRef<T>> lookupActor(String name);
 
   ActorRef sender();

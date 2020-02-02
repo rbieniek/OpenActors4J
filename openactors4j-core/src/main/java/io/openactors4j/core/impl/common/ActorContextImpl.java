@@ -2,12 +2,14 @@ package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.ActorRef;
+import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.Optional;
 
 public class ActorContextImpl implements ActorContext {
+
   @Override
   public <T> BehaviorBuilder<T> newBehaviorBuilder() {
     return null;
@@ -32,4 +34,10 @@ public class ActorContextImpl implements ActorContext {
   public ActorRef sender() {
     return null;
   }
+
+  @Override
+  public SupervisionStrategies supervisionStrategies() {
+    return null;
+  }
+
 }

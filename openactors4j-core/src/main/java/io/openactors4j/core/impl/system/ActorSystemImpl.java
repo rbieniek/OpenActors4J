@@ -4,6 +4,7 @@ import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
+import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
@@ -39,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ActorSystemImpl implements ActorSystem, Closeable {
 
   private final String systemName;
+
   private final BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> factory;
   @Getter
   private final ThreadPoolConfiguration userThreadPoolConfiguration;
@@ -52,6 +54,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   private ExecutorService userExecutorService;
   private ExecutorService systemExecutorService;
   private ScheduledExecutorService timerExecutorService;
+  private SupervisionStrategies supervisions;
 
   @Override
   public String name() {
@@ -98,6 +101,12 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
     });
   }
 
+  @Override
+  public SupervisionStrategies supervisionStrategies() {
+    return supervisions;
+  }
+
+
   @SuppressWarnings("PMD.DefaultPackage")
     /* default */ void start(final List<MessageContextManagement> contextManagements) {
     log.info("Starting actor system {} with threadpools user {} and system {}",
@@ -127,6 +136,8 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         .transportScheme("local")
         .path("/")
         .build());
+
+    supervisions = new SupervisionStrategiesImpl();
 
     log.info("Started actor system {} with bindings {}",
         systemName,
