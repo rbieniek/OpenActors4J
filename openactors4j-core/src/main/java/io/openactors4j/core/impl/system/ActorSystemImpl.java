@@ -123,6 +123,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         .hostname("localhost")
         .systemName(systemName)
         .transportScheme("local")
+        .path("/")
         .build());
 
     log.info("Started actor system {} with bindings {}",

@@ -53,9 +53,20 @@ public class RoutingSlip {
       throw new IllegalArgumentException("Empty hostname");
     }
 
-    final String[] pathParts = address.transport()
-        .getPath()
-        .split("/");
+    processPath(address.transport().getPath());
+  }
+
+  public RoutingSlip(final String systemName, final String absolutePath) {
+    this(SystemAddressImpl.builder()
+        .hostname(AddressConstants.CURRENT_HOST)
+        .path(absolutePath)
+        .transportScheme(AddressConstants.TRANSPORT_SCHEME_LOCAL)
+        .systemName(systemName)
+        .build());
+  }
+
+  private void processPath(final String absolutePath) {
+    final String[] pathParts = absolutePath.split("/");
 
     if (pathParts.length <= 2) {
       throw new IllegalArgumentException("Illegal path: " + address.transport().getPath());

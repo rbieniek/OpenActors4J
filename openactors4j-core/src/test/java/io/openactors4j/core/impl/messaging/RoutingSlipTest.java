@@ -31,6 +31,23 @@ public class RoutingSlipTest {
   }
 
   @Test
+  public void shouldCreateInstanceWithValidSystemNameAndPath() {
+    final RoutingSlip routingSlip = new RoutingSlip("test-system", "/user/foo");
+
+    assertThat(routingSlip).isNotNull();
+    assertThat(routingSlip.getAddress()).isEqualTo(SystemAddressImpl.builder()
+        .transportScheme(AddressConstants.TRANSPORT_SCHEME_LOCAL)
+        .systemName("test-system")
+        .hostname(AddressConstants.CURRENT_HOST)
+        .path("/user/foo")
+        .build());
+    assertThat(routingSlip.getHostName()).isEqualTo(AddressConstants.CURRENT_HOST);
+    assertThat(routingSlip.getPath()).containsSequence("user", "foo");
+    assertThat(routingSlip.getSystemName()).isEqualTo("test-system");
+    assertThat(routingSlip.getTransport()).isEqualTo(AddressConstants.TRANSPORT_SCHEME_LOCAL);
+  }
+
+  @Test
   public void shouldCreatePathPartsWithValidAddress() {
     final RoutingSlip routingSlip = new RoutingSlip(SystemAddressImpl.builder()
         .transportScheme("local")

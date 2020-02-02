@@ -48,9 +48,7 @@ public class SystemAddressImpl implements SystemAddress {
   @Override
   @SneakyThrows
   public URI transport() {
-    validate();
-
-    return new URI(new StringBuilder("actors.")
+    return new URI(new StringBuilder(AddressConstants.URI_SCHEME_PREFIX)
         .append(transportScheme)
         .append('.')
         .append(systemName)
