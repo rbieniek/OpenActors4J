@@ -19,7 +19,7 @@ public class ActorContextImpl implements ActorContext {
   }
 
   @Override
-  public UntypedActorBuilder spawnUntypedActor() {
+  public UntypedActorBuilder newUntypedActorBuilder() {
     return null;
   }
 

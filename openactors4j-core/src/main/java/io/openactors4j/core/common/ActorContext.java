@@ -8,9 +8,9 @@ import java.util.Optional;
 public interface ActorContext {
   <T> BehaviorBuilder<T> newBehaviorBuilder();
 
-  <T> ActorRef<T> spawn(Behavior<T> behavior, String name);
+  UntypedActorBuilder newUntypedActorBuilder();
 
-  UntypedActorBuilder spawnUntypedActor();
+  <T> ActorRef<T> spawn(Behavior<T> behavior, String name);
 
   <T> Optional<ActorRef<T>> lookupActor(String name);
 
