@@ -88,7 +88,7 @@ public class RoutingSlip {
         .map(it -> it.next());
   }
 
-  public boolean havePathPart() {
+  public boolean isChildPartAvailable() {
     return current.hasNext();
   }
 }

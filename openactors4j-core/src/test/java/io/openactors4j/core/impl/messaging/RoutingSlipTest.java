@@ -57,11 +57,11 @@ public class RoutingSlipTest {
         .build());
 
     assertThat(routingSlip).isNotNull();
-    assertThat(routingSlip.havePathPart()).isTrue();
+    assertThat(routingSlip.isChildPartAvailable()).isTrue();
     assertThat(routingSlip.nextPathPart()).hasValue("user");
-    assertThat(routingSlip.havePathPart()).isTrue();
+    assertThat(routingSlip.isChildPartAvailable()).isTrue();
     assertThat(routingSlip.nextPathPart()).hasValue("foo");
-    assertThat(routingSlip.havePathPart()).isFalse();
+    assertThat(routingSlip.isChildPartAvailable()).isFalse();
     assertThat(routingSlip.nextPathPart()).isEmpty();
   }
 

@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.common;
 
+import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
 
 
@@ -27,11 +28,22 @@ public abstract class ActorInstance<T> {
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
 
+  /**
+   * Route the incoming message according to its path:
+   * <ul>
+   * <li>if the target routing slip has q child path, route the message to the child actor with the
+   * name denoted by next path part. If no child actor with a matching name can be found, send the
+   * message to the systems unreachable handler</li>
+   * <li>if the message if targeted to this actor, enqueue the message into the mailbox</li>
+   * </ul>
+   *
+   * @param message the message to be routed
+   */
   public void routeMessage(final Message<T> message) {
     final Optional<String> currentPart = message.getTarget().nextPathPart();
 
     currentPart.ifPresentOrElse(pathPath -> {
-      Optional.ofNullable(childActors.get(pathPath))
+      ofNullable(childActors.get(pathPath))
           .ifPresentOrElse(child -> child.routeMessage(message),
               () -> context.undeliverableMessage(message));
     }, () -> {
@@ -40,9 +52,16 @@ public abstract class ActorInstance<T> {
     });
   }
 
+  /**
+   * handle the next message in the mailbox
+   */
   public void handleNextMessage() {
     mailbox.takeMessage().ifPresent(message -> {
+      try {
+        handleMessage(message);
+      } catch (Exception e) {
 
+      }
     });
   }
 
@@ -52,4 +71,14 @@ public abstract class ActorInstance<T> {
    * @param message the message to process;
    */
   protected abstract void handleMessage(final Message<T> message);
+
+  /**
+   *
+   */
+  protected abstract void startInstance();
+
+  /**
+   * obtain the current instance status
+   */
+  protected abstract InstanceState instanceState();
 }
