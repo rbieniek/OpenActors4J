@@ -1,4 +1,4 @@
-package io.openactors4j.core.untyped;
+package io.openactors4j.core.common;
 
 /**
  * Sending this message to an untyped actor will cause the actor to terminate and destroy itself
