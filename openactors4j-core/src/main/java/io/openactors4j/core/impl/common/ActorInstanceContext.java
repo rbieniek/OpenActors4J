@@ -22,4 +22,10 @@ public interface ActorInstanceContext {
    */
   <T> void undeliverableMessage(Message<T> message);
 
+  /**
+   * Retrieve the parent actor
+   *
+   * @return the parent actor instance
+   */
+  ActorInstance parentActor();
 }

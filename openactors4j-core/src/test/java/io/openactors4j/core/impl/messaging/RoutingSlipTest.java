@@ -74,4 +74,33 @@ public class RoutingSlipTest {
         .path("/user")
         .build()));
   }
+
+  @Test
+  public void shouldCopyRoutingSlipInstance() {
+    final RoutingSlip routingSlip = new RoutingSlip(SystemAddressImpl.builder()
+        .transportScheme("local")
+        .systemName("test")
+        .hostname("localhost")
+        .path("/user/foo")
+        .build());
+
+    assertThat(routingSlip).isNotNull();
+    assertThat(routingSlip.isChildPartAvailable()).isTrue();
+    assertThat(routingSlip.nextPathPart()).hasValue("user");
+    assertThat(routingSlip.isChildPartAvailable()).isTrue();
+    assertThat(routingSlip.nextPathPart()).hasValue("foo");
+    assertThat(routingSlip.isChildPartAvailable()).isFalse();
+    assertThat(routingSlip.nextPathPart()).isEmpty();
+
+    final RoutingSlip copySlip = RoutingSlip.copy(routingSlip);
+
+    assertThat(copySlip).isNotNull();
+    assertThat(copySlip.isChildPartAvailable()).isTrue();
+    assertThat(copySlip.nextPathPart()).hasValue("user");
+    assertThat(copySlip.isChildPartAvailable()).isTrue();
+    assertThat(copySlip.nextPathPart()).hasValue("foo");
+    assertThat(copySlip.isChildPartAvailable()).isFalse();
+    assertThat(copySlip.nextPathPart()).isEmpty();
+
+  }
 }

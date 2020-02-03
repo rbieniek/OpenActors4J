@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.messaging;
 
+import static java.util.Collections.unmodifiableList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 
@@ -7,6 +8,7 @@ import io.openactors4j.core.common.SystemAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
@@ -30,6 +32,30 @@ public class RoutingSlip {
   private List<String> path;
 
   private Iterator<String> current;
+
+  /**
+   * Copy constructor with iterator reset
+   *
+   * @param source the {@link RoutingSlip} to copy
+   * @return a fresh instance of {@link RoutingSlip} with the path iterator reset to the first
+   * part of the path name
+   */
+  public static RoutingSlip copy(final RoutingSlip source) {
+    final RoutingSlip instance = new RoutingSlip();
+
+    instance.address = source.getAddress();
+    instance.transport = source.getTransport();
+    instance.systemName = source.getSystemName();
+    instance.hostName = source.getHostName();
+    instance.path = unmodifiableList(new LinkedList<>(source.getPath()));
+
+    instance.current = instance.path.iterator();
+    instance.current.next();
+
+    return instance;
+  }
+
+  private RoutingSlip() {}
 
   public RoutingSlip(final SystemAddress address) {
     this.address = address;
@@ -72,7 +98,7 @@ public class RoutingSlip {
       throw new IllegalArgumentException("Illegal path: " + address.transport().getPath());
     }
 
-    path = Collections.unmodifiableList(Arrays.asList(pathParts));
+    path = unmodifiableList(Arrays.asList(pathParts));
 
     if (path.stream().filter(part -> StringUtils.isBlank(part)).count() > 1) {
       throw new IllegalArgumentException("Blank path component detected");

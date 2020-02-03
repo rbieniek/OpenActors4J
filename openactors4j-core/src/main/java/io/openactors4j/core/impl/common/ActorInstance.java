@@ -7,6 +7,7 @@ import static lombok.AccessLevel.PROTECTED;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.impl.messaging.Message;
+import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +30,16 @@ public abstract class ActorInstance<T> {
   private final StartupMode startupMode;
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
+
+  /**
+   * Lookup an actor instance from the path component of a given {@link RoutingSlip}
+   *
+   * @param routingSlip
+   * @return
+   */
+  public Optional<ActorInstance> lookupActorInstance(final RoutingSlip routingSlip) {
+    return Optional.empty();
+  }
 
   /**
    * Route the incoming message according to its path:
@@ -62,7 +73,7 @@ public abstract class ActorInstance<T> {
       try {
         handleMessage(message);
       } catch (Exception e) {
-
+        supervisionStrategy.handleProcessingException(e, this, context);
       }
     });
   }
