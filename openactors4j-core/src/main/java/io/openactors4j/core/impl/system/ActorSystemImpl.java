@@ -5,7 +5,6 @@ import io.openactors4j.core.common.ActorSystem;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategies;
-import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.ThreadPoolConfiguration;
 import io.openactors4j.core.common.TimerThreadPoolConfiguration;
@@ -84,7 +83,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
       @Override
       public ActorRef spawnUntypedActor(final String name, Supplier<? extends UntypedActor> supplier,
                                         final Optional<Mailbox> mailbox,
-                                        final Optional<SupervisionStrategy> supervisionStrategy,
+                                        final Optional<SupervisionStrategyInternal> supervisionStrategy,
                                         final Optional<StartupMode> startupMode) {
         return null;
       }

@@ -12,6 +12,7 @@ import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
+import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   private Optional<Supplier<? extends UntypedActor>> supplier = empty();
   private Optional<BiFunction> factory = empty();
   private Optional<Object[]> arguments = empty();
-  private Optional<SupervisionStrategy> supervisionStrategy = empty();
+  private Optional<SupervisionStrategyInternal> supervisionStrategy = empty();
   private Optional<Mailbox> mailbox = empty();
   private Optional<String> name = empty();
   private Optional<StartupMode> startupMode = empty();
@@ -63,7 +64,11 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
   @Override
   public UntypedActorBuilder withSupervisionStrategy(final SupervisionStrategy strategy) {
-    this.supervisionStrategy = of(strategy);
+    if (!(strategy instanceof SupervisionStrategyInternal)) {
+      throw new IllegalArgumentException("Unknown supervision strategy passed: " + strategy.getClass());
+    }
+
+    this.supervisionStrategy = of((SupervisionStrategyInternal) strategy);
 
     return this;
   }

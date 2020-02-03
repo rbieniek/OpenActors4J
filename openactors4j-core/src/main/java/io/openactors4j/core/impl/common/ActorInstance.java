@@ -6,8 +6,8 @@ import static lombok.AccessLevel.PROTECTED;
 
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
-import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.messaging.Message;
+import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,7 +24,7 @@ public abstract class ActorInstance<T> {
 
   private final ActorInstanceContext context;
   private final String name;
-  private final SupervisionStrategy supervisionStrategy;
+  private final SupervisionStrategyInternal supervisionStrategy;
   private final Mailbox<Message<T>> mailbox;
   private final StartupMode startupMode;
 

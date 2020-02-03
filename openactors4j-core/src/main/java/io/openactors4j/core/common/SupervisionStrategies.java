@@ -35,15 +35,16 @@ public interface SupervisionStrategies {
 
   /**
    * Access a supervision strategy to schedule the future restart the actor after it crashes
-   *
+   * <p>
    * In case the actor restart fails, the actor restart is attempted again after the
    * given restart period
    *
    * <p>
-   *   <b>Please note:</b> the restart period is the duration within which the actor is blocked
-   *   from a restart attempt. The actor system may delay the restart further, depending on system
-   *   conditions
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
    * </p>
+   *
    * @param restartPeriod the minimum duration before the actor restart is attempted
    * @return the supervision strategy
    */
@@ -51,15 +52,16 @@ public interface SupervisionStrategies {
 
   /**
    * Access a supervision strategy to schedule the future restart the actor after it crashes.
-   *
+   * <p>
    * In case the actor restart fails, the actor restart is attempted again after the
    * given restart period extended by the backoff period for any subsequent retry
    *
    * <p>
-   *   <b>Please note:</b> the restart period is the duration within which the actor is blocked
-   *   from a restart attempt. The actor system may delay the restart further, depending on system
-   *   conditions
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
    * </p>
+   *
    * @param restartPeriod the minimum duration before the actor restart is attempted
    * @param backoffPeriod this period is added to the restart period in case the actor
    *                      restart fails and another attempt needs to be scheduled
@@ -69,15 +71,16 @@ public interface SupervisionStrategies {
 
   /**
    * Access a supervision strategy to schedule the future restart the actor after it crashes.
-   *
+   * <p>
    * In case the actor restart fails, the actor restart is attempted again after the
    * given restart period extended by the backoff period for any subsequent retry
    *
    * <p>
-   *   <b>Please note:</b> the restart period is the duration within which the actor is blocked
-   *   from a restart attempt. The actor system may delay the restart further, depending on system
-   *   conditions
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
    * </p>
+   *
    * @param restartPeriod the minimum duration before the actor restart is attempted
    * @param backoffPeriod this period is added to the restart period in case the actor
    *                      restart fails and another attempt needs to be scheduled

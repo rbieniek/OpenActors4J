@@ -3,7 +3,6 @@ package io.openactors4j.core.impl.system;
 import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.StartupMode;
-import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.untyped.UntypedActor;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -32,7 +31,7 @@ public interface ActorBuilderContext<T> {
    * @return
    */
   public ActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
-                                    Optional<Mailbox> mailbox, Optional<SupervisionStrategy> supervisionStrategy,
+                                    Optional<Mailbox> mailbox, Optional<SupervisionStrategyInternal> supervisionStrategy,
                                     Optional<StartupMode> startupMode);
 
   /**

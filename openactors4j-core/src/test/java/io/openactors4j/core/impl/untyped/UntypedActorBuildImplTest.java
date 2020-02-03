@@ -13,6 +13,7 @@ import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
+import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import io.openactors4j.core.untyped.UntypedActor;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.time.Duration;
@@ -182,7 +183,7 @@ public class UntypedActorBuildImplTest {
         .withSupplier(() -> TestUntypedActor.builder()
             .tag("test-actor")
             .build())
-        .withSupervisionStrategy(new SupervisionStrategy() {
+        .withSupervisionStrategy(new SupervisionStrategyInternal() {
         })
         .create())
         .isNotNull()
@@ -343,6 +344,27 @@ public class UntypedActorBuildImplTest {
             .create());
   }
 
+  @Test
+  public void shouldFailWithUnknownSupervisionStrategy() {
+    final UntypedActorBuilder actorBuilder = new UntypedActorBuilderImpl(
+        TestActorBuilderContext.builder()
+            .expectedActorNamePattern(() -> compile("^test-actor$"))
+            .shoudHaveEmptySupervisionStrategy(false)
+            .shoudHaveEmptyMailbox(true)
+            .build()
+    );
+
+    Assertions.assertThatIllegalArgumentException()
+        .isThrownBy(() -> actorBuilder
+            .withAbsoluteName("test-actor")
+            .withSupplier(() -> TestUntypedActor.builder()
+                .tag("test-actor")
+                .build())
+            .withSupervisionStrategy(new SupervisionStrategy() {
+            })
+            .create());
+  }
+
   @Builder
   @RequiredArgsConstructor
   private static final class TestActorBuilderContext implements ActorBuilderContext<Object> {
@@ -376,7 +398,7 @@ public class UntypedActorBuildImplTest {
     public ActorRef spawnUntypedActor(final String name,
                                       final Supplier<? extends UntypedActor> supplier,
                                       final Optional<Mailbox> mailbox,
-                                      final Optional<SupervisionStrategy> supervisionStrategy,
+                                      final Optional<SupervisionStrategyInternal> supervisionStrategy,
                                       final Optional<StartupMode> startupMode) {
       if (shoudHaveEmptyMailbox) {
         assertThat(mailbox).isEmpty();
