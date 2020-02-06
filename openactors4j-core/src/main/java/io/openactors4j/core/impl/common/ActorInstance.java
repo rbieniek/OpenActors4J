@@ -68,6 +68,7 @@ public abstract class ActorInstance<T> {
   /**
    * handle the next message in the mailbox
    */
+  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void handleNextMessage() {
     mailbox.takeMessage().ifPresent(message -> {
       try {

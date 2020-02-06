@@ -6,18 +6,19 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import io.openactors4j.core.common.SystemAddress;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * This class contains the complete routing slip of a message passed through the system
  */
 public class RoutingSlip {
+
+  private static final int SCHEMES_PARTS = 3;
+  private static final int MINIMAL_REQURED_PATH_PARTS = 2;
 
   @Getter
   private SystemAddress address;
@@ -55,14 +56,15 @@ public class RoutingSlip {
     return instance;
   }
 
-  private RoutingSlip() {}
+  private RoutingSlip() {
+  }
 
   public RoutingSlip(final SystemAddress address) {
     this.address = address;
 
     final String[] schemeParts = address.transport().getScheme().split("\\.");
 
-    if (schemeParts.length != 3) {
+    if (schemeParts.length != SCHEMES_PARTS) {
       throw new IllegalArgumentException("Invalid scheme: " + address.transport().getScheme());
     }
 
@@ -94,13 +96,13 @@ public class RoutingSlip {
   private void processPath(final String absolutePath) {
     final String[] pathParts = absolutePath.split("/");
 
-    if (pathParts.length <= 2) {
+    if (pathParts.length <= MINIMAL_REQURED_PATH_PARTS) {
       throw new IllegalArgumentException("Illegal path: " + address.transport().getPath());
     }
 
     path = unmodifiableList(Arrays.asList(pathParts));
 
-    if (path.stream().filter(part -> StringUtils.isBlank(part)).count() > 1) {
+    if (path.stream().filter(part -> isBlank(part)).count() > AddressConstants.ALLOWED_BLANK_PATH_PARTS) {
       throw new IllegalArgumentException("Blank path component detected");
     }
 

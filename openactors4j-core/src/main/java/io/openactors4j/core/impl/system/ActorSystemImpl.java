@@ -36,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("PMD.ExcessiveImports")
 public class ActorSystemImpl implements ActorSystem, Closeable {
 
   private final String systemName;
@@ -81,7 +82,8 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
   public UntypedActorBuilder newUntypedActor() {
     return new UntypedActorBuilderImpl(new ActorBuilderContext<Object>() {
       @Override
-      public ActorRef spawnUntypedActor(final String name, Supplier<? extends UntypedActor> supplier,
+      public ActorRef spawnUntypedActor(final String name,
+                                        final Supplier<? extends UntypedActor> supplier,
                                         final Optional<Mailbox> mailbox,
                                         final Optional<SupervisionStrategyInternal> supervisionStrategy,
                                         final Optional<StartupMode> startupMode) {

@@ -18,7 +18,7 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
   private final Optional<Integer> backoffFactor = Optional.empty();
 
   @Override
-  public void handleProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context) {
+  public void handleProcessingException(final Exception processingException, final ActorInstance actorInstance, final ActorInstanceContext context) {
 
   }
 }

@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@SuppressWarnings( {"PMD.TooManyStaticImports", "PMD.TooManyMethods"})
 public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   private final ActorBuilderContext actorBuilderContext;
 
@@ -92,7 +93,7 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
   }
 
   @Override
-  public UntypedActorBuilder withStartupMode(StartupMode startupMode) {
+  public UntypedActorBuilder withStartupMode(final StartupMode startupMode) {
     this.startupMode = of(startupMode);
 
     return this;
@@ -107,29 +108,15 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
     this.name = of(new StringBuilder()
         .append(actorNamePrefix)
         .append('#')
-        .append(UUID.randomUUID().toString().replaceAll("-", "").toLowerCase())
+        .append(UUID.randomUUID().toString().replaceAll("-", ""))
         .toString());
     return this;
   }
 
   @Override
   public ActorRef create() {
-    if (actorClass.isEmpty() && supplier.isEmpty()) {
-      throw new IllegalArgumentException("Neither actor class nor instance supplier specified");
-    }
-
-    if (actorClass.isPresent() && supplier.isPresent()) {
-      throw new IllegalArgumentException("Both actor class and instance supplier specified");
-    }
-
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("Actor name must be specified");
-    }
-
-    if (actorBuilderContext.haveSiblingWithName(name.get())) {
-      throw new IllegalArgumentException("Actor with name '" + name.get() + "' already present");
-    }
-    ;
+    verifyInstanceCreateion();
+    verifyNaming();
 
     final Supplier<? extends UntypedActor> actorSupplier = this.supplier.orElse(() ->
         (UntypedActor) factory
@@ -138,5 +125,25 @@ public class UntypedActorBuilderImpl implements UntypedActorBuilder {
 
     return actorBuilderContext.spawnUntypedActor(this.name.get(), actorSupplier, mailbox,
         supervisionStrategy, startupMode);
+  }
+
+  private void verifyInstanceCreateion() {
+    if (actorClass.isEmpty() && supplier.isEmpty()) {
+      throw new IllegalArgumentException("Neither actor class nor instance supplier specified");
+    }
+
+    if (actorClass.isPresent() && supplier.isPresent()) {
+      throw new IllegalArgumentException("Both actor class and instance supplier specified");
+    }
+  }
+
+  private void verifyNaming() {
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("Actor name must be specified");
+    }
+
+    if (actorBuilderContext.haveSiblingWithName(name.get())) {
+      throw new IllegalArgumentException("Actor with name '" + name.get() + "' already present");
+    }
   }
 }

@@ -4,7 +4,7 @@ import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 
 public class BubbleUpSupervisionStrategy implements SupervisionStrategyInternal {
   @Override
-  public void handleProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context) {
+  public void handleProcessingException(final Exception processingException, final ActorInstance actorInstance, final ActorInstanceContext context) {
 
   }
 }

@@ -21,6 +21,8 @@ public class SystemAddressImpl implements SystemAddress {
   private int port;
   private String path;
 
+  @Override
+  @SuppressWarnings("PMD.CyclomaticComplexity")
   public SystemAddress validate() {
     if (isBlank(transportScheme)) {
       throw new IllegalArgumentException("Empty transport scheme detected");
@@ -37,8 +39,7 @@ public class SystemAddressImpl implements SystemAddress {
       throw new IllegalArgumentException("Mailformed path detected");
     }
 
-
-    if (Arrays.stream(splitByWholeSeparatorPreserveAllTokens(path, "/")).filter(s -> isBlank(s)).count() > 1) {
+    if (Arrays.stream(splitByWholeSeparatorPreserveAllTokens(path, "/")).filter(s -> isBlank(s)).count() > AddressConstants.ALLOWED_BLANK_PATH_PARTS) {
       throw new IllegalArgumentException("Empty path component detected");
     }
 

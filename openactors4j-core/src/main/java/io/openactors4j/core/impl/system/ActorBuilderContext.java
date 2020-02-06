@@ -30,9 +30,9 @@ public interface ActorBuilderContext<T> {
    * @param supervisionStrategy
    * @return
    */
-  public ActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
-                                    Optional<Mailbox> mailbox, Optional<SupervisionStrategyInternal> supervisionStrategy,
-                                    Optional<StartupMode> startupMode);
+  ActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
+                             Optional<Mailbox> mailbox, Optional<SupervisionStrategyInternal> supervisionStrategy,
+                             Optional<StartupMode> startupMode);
 
   /**
    * Determine if there is already a sibling actor existing with an equal name

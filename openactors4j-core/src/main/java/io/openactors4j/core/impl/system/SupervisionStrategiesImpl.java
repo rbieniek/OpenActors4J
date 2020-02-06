@@ -32,14 +32,14 @@ public class SupervisionStrategiesImpl implements SupervisionStrategies {
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(Duration restartPeriod) {
+  public SupervisionStrategy delayedRestart(final Duration restartPeriod) {
     return DelayedRestartSupervisionStrategy.builder()
         .restartPeriod(restartPeriod)
         .build();
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(Duration restartPeriod, Duration backoffPeriod) {
+  public SupervisionStrategy delayedRestart(final Duration restartPeriod, final Duration backoffPeriod) {
     return DelayedRestartSupervisionStrategy.builder()
         .restartPeriod(restartPeriod)
         .backoffPeriod(of(backoffPeriod))
@@ -47,7 +47,7 @@ public class SupervisionStrategiesImpl implements SupervisionStrategies {
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(Duration restartPeriod, Duration backoffPeriod, int backoffFactor) {
+  public SupervisionStrategy delayedRestart(final Duration restartPeriod, final Duration backoffPeriod, final int backoffFactor) {
     return DelayedRestartSupervisionStrategy.builder()
         .restartPeriod(restartPeriod)
         .backoffPeriod(of(backoffPeriod))
