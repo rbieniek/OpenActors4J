@@ -5,7 +5,7 @@ import static lombok.AccessLevel.PROTECTED;
 import static lombok.AccessLevel.PUBLIC;
 
 
-import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
@@ -30,7 +30,6 @@ public abstract class ActorInstance<T> {
   @Getter(PUBLIC)
   private final String name;
   private final SupervisionStrategyInternal supervisionStrategy;
-  private final Mailbox<Message<T>> mailbox;
   private final StartupMode startupMode;
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
@@ -39,8 +38,14 @@ public abstract class ActorInstance<T> {
   private InstanceState instanceState = InstanceState.NEW;
 
   private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
-      .addState(InstanceState.NEW, InstanceState.RUNNING, state -> startNewInstance(state))
-      .addState(InstanceState.DELAYED, InstanceState.RUNNING, state -> startDelayedInstance(state));
+      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
+      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
+      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
+      .addState(InstanceState.RESTARTING, InstanceState.STOPPED, this::stopInstance)
+      .addState(InstanceState.RESTARTING_DELAYED, InstanceState.STOPPED, this::stopInstance)
+      .addState(InstanceState.RUNNING, InstanceState.STOPPED, this::stopInstance)
+      .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
+      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance);
 
   /**
    * Move the actor instance to a new state.
@@ -86,17 +91,22 @@ public abstract class ActorInstance<T> {
           .ifPresentOrElse(child -> child.routeMessage(message),
               () -> context.undeliverableMessage(message));
     }, () -> {
-      mailbox.putMessage(message);
+      if (message.getPayload() instanceof DeathNote) {
+        transitionState(InstanceState.STOPPED);
+      } else {
+        context.enqueueMessage(message);
 
-      switch (instanceState) {
-        case RUNNING:
-          context.scheduleMessageProcessing();
-          break;
-        case DELAYED:
-          transitionState(InstanceState.RUNNING);
-          break;
-        default:
-          throw new IllegalStateException("Cannot handle current instance state " + instanceState);
+        switch (instanceState) {
+          case RUNNING:
+            context.scheduleMessageProcessing();
+            break;
+          case DELAYED:
+            transitionState(InstanceState.RUNNING);
+            break;
+          default:
+            throw new IllegalStateException("Cannot handle current instance state " + instanceState);
+        }
+
       }
     });
   }
@@ -105,14 +115,12 @@ public abstract class ActorInstance<T> {
    * handle the next message in the mailbox
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
-  public void handleNextMessage() {
-    mailbox.takeMessage().ifPresent(message -> {
-      try {
-        handleMessage(message);
-      } catch (Exception e) {
-        supervisionStrategy.handleProcessingException(e, this, context);
-      }
-    });
+  public void handleNextMessage(final Message<T> message) {
+    try {
+      handleMessage(message);
+    } catch (Exception e) {
+      transitionState(supervisionStrategy.handleProcessingException(e, this, context));
+    }
   }
 
   /**
@@ -158,5 +166,17 @@ public abstract class ActorInstance<T> {
   private InstanceState startDelayedInstance(final InstanceState desiredState) {
 
     return InstanceState.STARTING;
+  }
+
+  @SuppressWarnings("PMD.UnusedFormalParameter")
+  private InstanceState stopInstance(final InstanceState desiredState) {
+
+    return InstanceState.STOPPED;
+  }
+
+  @SuppressWarnings("PMD.UnusedFormalParameter")
+  private InstanceState suspendInstance(final InstanceState desiredState) {
+
+    return InstanceState.STOPPED;
   }
 }

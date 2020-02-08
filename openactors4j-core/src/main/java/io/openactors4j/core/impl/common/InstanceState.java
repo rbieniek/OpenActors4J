@@ -7,5 +7,6 @@ public enum InstanceState {
   RUNNING,
   RESTARTING,
   RESTARTING_DELAYED,
-  DELAYED;
+  DELAYED,
+  SUSPENDED;
 }
