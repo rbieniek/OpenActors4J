@@ -45,7 +45,9 @@ public abstract class ActorInstance<T> {
       .addState(InstanceState.RESTARTING_DELAYED, InstanceState.STOPPED, this::stopInstance)
       .addState(InstanceState.RUNNING, InstanceState.STOPPED, this::stopInstance)
       .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance);
+      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
+      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
+      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed);
 
   /**
    * Move the actor instance to a new state.
@@ -53,7 +55,7 @@ public abstract class ActorInstance<T> {
   public void transitionState(final InstanceState desiredState) {
     if (instanceState != desiredState) {
       log.info("Transition actor {} from state {} to new state {}", name, instanceState, desiredState);
-      instanceState = stateMachine.lookup(InstanceState.NEW, InstanceState.RUNNING)
+      instanceState = stateMachine.lookup(instanceState, desiredState)
           .orElseThrow(() -> new IllegalStateException("Cannot transition from state " + instanceState + " to state " + desiredState))
           .apply(desiredState);
     }
@@ -152,7 +154,11 @@ public abstract class ActorInstance<T> {
         resultState = InstanceState.DELAYED;
         break;
       case IMMEDIATE:
-
+        /*
+        context.runAsync(() -> startInstance())
+            .handle((s, t) -> t != null ? InstanceState.RESTARTING_DELAYED : InstanceState.RUNNING)
+            .whenComplete((state, throwable) -> transitionState((InstanceState) state));
+            */
         resultState = InstanceState.STARTING;
         break;
       default:
@@ -178,5 +184,16 @@ public abstract class ActorInstance<T> {
   private InstanceState suspendInstance(final InstanceState desiredState) {
 
     return InstanceState.STOPPED;
+  }
+
+  private InstanceState startComplete(final InstanceState desiredState) {
+
+    return desiredState;
+  }
+
+
+  private InstanceState startFailed(final InstanceState desiredState) {
+
+    return desiredState;
   }
 }
