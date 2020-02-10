@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.common;
 
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
 import static lombok.AccessLevel.PUBLIC;
@@ -55,9 +56,10 @@ public abstract class ActorInstance<T> {
   public void transitionState(final InstanceState desiredState) {
     if (instanceState != desiredState) {
       log.info("Transition actor {} from state {} to new state {}", name, instanceState, desiredState);
-      instanceState = stateMachine.lookup(instanceState, desiredState)
+      stateMachine.lookup(instanceState, desiredState)
           .orElseThrow(() -> new IllegalStateException("Cannot transition from state " + instanceState + " to state " + desiredState))
-          .apply(desiredState);
+          .apply(desiredState)
+          .ifPresent(state -> instanceState = state);
     }
   }
 
@@ -146,7 +148,7 @@ public abstract class ActorInstance<T> {
    * @return
    */
   @SuppressWarnings( {"PMD.UnusedFormalParameter", "PMD.AvoidFinalLocalVariable"})
-  private InstanceState startNewInstance(final InstanceState desiredState) {
+  private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
     final InstanceState resultState;
 
     switch (startupMode) {
@@ -154,46 +156,47 @@ public abstract class ActorInstance<T> {
         resultState = InstanceState.DELAYED;
         break;
       case IMMEDIATE:
-        /*
+        instanceState = InstanceState.STARTING;
         context.runAsync(() -> startInstance())
             .handle((s, t) -> t != null ? InstanceState.RESTARTING_DELAYED : InstanceState.RUNNING)
             .whenComplete((state, throwable) -> transitionState((InstanceState) state));
-            */
-        resultState = InstanceState.STARTING;
+
+        resultState = null;
         break;
       default:
         throw new IllegalStateException("Cannot handle startup mode " + startupMode);
     }
 
-    return resultState;
+    return ofNullable(resultState);
   }
 
   @SuppressWarnings("PMD.UnusedFormalParameter")
-  private InstanceState startDelayedInstance(final InstanceState desiredState) {
+  private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
 
-    return InstanceState.STARTING;
+    return of(InstanceState.STARTING);
   }
 
   @SuppressWarnings("PMD.UnusedFormalParameter")
-  private InstanceState stopInstance(final InstanceState desiredState) {
+  private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
 
-    return InstanceState.STOPPED;
+    return of(InstanceState.STOPPED);
   }
 
   @SuppressWarnings("PMD.UnusedFormalParameter")
-  private InstanceState suspendInstance(final InstanceState desiredState) {
+  private Optional<InstanceState> suspendInstance(final InstanceState desiredState) {
 
-    return InstanceState.STOPPED;
+    return of(InstanceState.STOPPED);
   }
 
-  private InstanceState startComplete(final InstanceState desiredState) {
+  private Optional<InstanceState> startComplete(final InstanceState desiredState) {
 
-    return desiredState;
+    return of(desiredState);
   }
 
 
-  private InstanceState startFailed(final InstanceState desiredState) {
+  private Optional<InstanceState> startFailed(final InstanceState desiredState) {
 
-    return desiredState;
+    return of(desiredState)
+        ;
   }
 }
