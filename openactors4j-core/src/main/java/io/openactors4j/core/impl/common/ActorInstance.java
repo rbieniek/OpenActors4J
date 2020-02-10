@@ -108,6 +108,9 @@ public abstract class ActorInstance<T> {
           case DELAYED:
             transitionState(InstanceState.RUNNING);
             break;
+          case STARTING:
+            // No further action required
+            break;
           default:
             throw new IllegalStateException("Cannot handle current instance state " + instanceState);
         }
@@ -184,8 +187,13 @@ public abstract class ActorInstance<T> {
   }
 
   private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
+    instanceState = InstanceState.STARTING;
 
-    return of(InstanceState.STARTING);
+    context.runAsync(() -> startInstance())
+        .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
+        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
+
+    return Optional.empty();
   }
 
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
@@ -199,6 +207,7 @@ public abstract class ActorInstance<T> {
   }
 
   private Optional<InstanceState> startComplete(final InstanceState desiredState) {
+    context.scheduleMessageProcessing();
 
     return of(desiredState);
   }
@@ -206,7 +215,6 @@ public abstract class ActorInstance<T> {
 
   private Optional<InstanceState> startFailed(final InstanceState desiredState) {
 
-    return of(desiredState)
-        ;
+    return of(desiredState);
   }
 }

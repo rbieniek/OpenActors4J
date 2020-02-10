@@ -18,7 +18,7 @@ import lombok.Getter;
 public class RoutingSlip {
 
   private static final int SCHEMES_PARTS = 3;
-  private static final int MINIMAL_REQURED_PATH_PARTS = 2;
+  private static final int MINIMAL_REQURED_PATH_PARTS = 1;
 
   @Getter
   private SystemAddress address;

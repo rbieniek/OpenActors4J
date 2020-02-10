@@ -71,7 +71,7 @@ public class RoutingSlipTest {
         .transportScheme("local")
         .systemName("test")
         .hostname("localhost")
-        .path("/user")
+        .path("/")
         .build()));
   }
 
