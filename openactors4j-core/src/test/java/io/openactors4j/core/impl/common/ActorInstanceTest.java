@@ -22,7 +22,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 
-class ActorInstanceTest {
+public class ActorInstanceTest {
 
   @Test
   public void shouldCreateActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
