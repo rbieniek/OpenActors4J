@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor(access = PROTECTED)
 @Getter(PROTECTED)
 @Slf4j
+@SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter"})
 public abstract class ActorInstance<T> {
 
   private final ActorInstanceContext context;
@@ -147,7 +148,7 @@ public abstract class ActorInstance<T> {
    * @param desiredState the desired state, ignored in this case
    * @return
    */
-  @SuppressWarnings( {"PMD.UnusedFormalParameter", "PMD.AvoidFinalLocalVariable"})
+  @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
     final InstanceState resultState;
 
@@ -157,8 +158,9 @@ public abstract class ActorInstance<T> {
         break;
       case IMMEDIATE:
         instanceState = InstanceState.STARTING;
+
         context.runAsync(() -> startInstance())
-            .handle((s, t) -> t != null ? InstanceState.RESTARTING_DELAYED : InstanceState.RUNNING)
+            .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
             .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 
         resultState = null;
@@ -170,19 +172,27 @@ public abstract class ActorInstance<T> {
     return ofNullable(resultState);
   }
 
-  @SuppressWarnings("PMD.UnusedFormalParameter")
+  @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
+  private InstanceState decideStateAfterInstanceStart(final Throwable throwable) {
+    InstanceState result = InstanceState.RUNNING;
+
+    if (throwable != null) {
+      result = InstanceState.RESTARTING_DELAYED;
+    }
+
+    return result;
+  }
+
   private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
 
     return of(InstanceState.STARTING);
   }
 
-  @SuppressWarnings("PMD.UnusedFormalParameter")
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
 
     return of(InstanceState.STOPPED);
   }
 
-  @SuppressWarnings("PMD.UnusedFormalParameter")
   private Optional<InstanceState> suspendInstance(final InstanceState desiredState) {
 
     return of(InstanceState.STOPPED);
