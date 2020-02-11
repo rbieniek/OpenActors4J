@@ -58,7 +58,7 @@
         <java.lib.slf4j>1.7.29</java.lib.slf4j>
         <java.lib.commons.lang>3.9</java.lib.commons.lang>
         <java.lib.spotbugs>4.0.0-beta4</java.lib.spotbugs>
-        <java.lib.checkstyle>8.27</java.lib.checkstyle>
+        <java.lib.checkstyle>8.29</java.lib.checkstyle>
         <java.lib.pmd>6.21.0</java.lib.pmd>
         <java.lib.opentracing>0.33.0</java.lib.opentracing>
         <java.lib.junit.bom>5.5.2</java.lib.junit.bom>
