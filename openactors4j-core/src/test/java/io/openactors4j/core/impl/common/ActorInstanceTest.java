@@ -141,7 +141,7 @@ public class ActorInstanceTest {
         CompletableFuture.runAsync(() -> mailboxHolder
             .getMailbox()
             .takeMessage()
-            .ifPresent(message -> actorInstance.handleMessage(message)), executorService)
+            .ifPresent(message -> actorInstance.handleNextMessage(message)), executorService)
             .whenComplete((s, t) -> {
               final boolean needReschedule = mailboxHolder.getMailbox().needsScheduling();
 
