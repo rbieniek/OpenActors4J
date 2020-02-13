@@ -6,7 +6,9 @@ import static lombok.AccessLevel.PROTECTED;
 import static lombok.AccessLevel.PUBLIC;
 
 
+import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
+import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
@@ -14,6 +16,7 @@ import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 @Getter(PROTECTED)
 @Slf4j
 @SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter"})
-public abstract class ActorInstance<T> {
+public abstract class ActorInstance<V extends Actor, T> {
 
   private final ActorInstanceContext context;
+  private final Supplier<V> instanceSupplier;
   @Getter(PUBLIC)
   private final String name;
   private final SupervisionStrategyInternal supervisionStrategy;
@@ -38,6 +42,9 @@ public abstract class ActorInstance<T> {
 
   @Getter(PUBLIC)
   private InstanceState instanceState = InstanceState.NEW;
+
+  @Getter(PROTECTED)
+  private V instance;
 
   private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
       .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
@@ -139,9 +146,18 @@ public abstract class ActorInstance<T> {
   protected abstract void handleMessage(final Message<T> message);
 
   /**
+   * Create the actor implementation instance
+   */
+  private void createInstance() {
+    this.instance = instanceSupplier.get();
+  };
+
+  /**
    *
    */
-  protected abstract void startInstance();
+  private void sendSignal(Signal signal) {
+    this.instance.receiveSignal(signal);
+  };
 
   /**
    * Attempt to start a new actor.
@@ -162,7 +178,8 @@ public abstract class ActorInstance<T> {
       case IMMEDIATE:
         instanceState = InstanceState.STARTING;
 
-        context.runAsync(() -> startInstance())
+        context.runAsync(() -> createInstance())
+            .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
             .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
             .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 
@@ -186,10 +203,20 @@ public abstract class ActorInstance<T> {
     return result;
   }
 
+  private Object sendPreStartSignalAfterCreation(final Object object, final Throwable throwable) {
+
+    if (throwable == null) {
+      sendSignal(Signal.PRE_START);
+    }
+
+    return object;
+  }
+
   private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
     instanceState = InstanceState.STARTING;
 
-    context.runAsync(() -> startInstance())
+    context.runAsync(() -> createInstance())
+        .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
         .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
         .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 

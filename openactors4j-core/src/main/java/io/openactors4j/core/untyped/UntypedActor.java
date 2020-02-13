@@ -1,23 +1,13 @@
 package io.openactors4j.core.untyped;
 
-import io.openactors4j.core.common.ActorContext;
+import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.Signal;
 
 /**
  * Public interface of an untyped actor, an actor which can handle any kind of message due to the
  * message class being {@link Object}
  */
-public interface UntypedActor {
-  /**
-   * Pass the context around the actor into the actor
-   *
-   * @param context the context information
-   */
-  default void setContext(ActorContext context) {
-  }
-
-  ;
-
+public interface UntypedActor extends Actor {
   /**
    * Reliably pass the lifecycle signal information into the actor.
    * In contrast to the at-most-once message delivery contract, signal delivery is guaranteed.
@@ -26,7 +16,7 @@ public interface UntypedActor {
    *
    * @param lifecycleSignal the lifecycle signal
    */
-  default void signal(Signal lifecycleSignal) {
+  default void receiveSignal(Signal lifecycleSignal) {
     switch (lifecycleSignal) {
       case PRE_START:
         onPreStart();

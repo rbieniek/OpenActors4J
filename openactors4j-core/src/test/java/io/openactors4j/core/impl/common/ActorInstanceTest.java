@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.NotImplementedException;
+import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.UnboundedMailbox;
@@ -48,9 +49,9 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final WorkingTestActorInstance<Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+    final TestActorInstance<Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -70,7 +71,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
+  public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final StartupFailingTestActorInstance<Integer> actorInstance = new StartupFailingTestActorInstance<>(actorInstanceContext,
         "test",
@@ -84,7 +85,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
+  public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final WorkingTestActorInstance<Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
         "test",
@@ -97,6 +98,32 @@ public class ActorInstanceTest {
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.DELAYED);
     assertThat(actorInstance.isStarted()).isFalse();
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, Integer.valueOf(1)));
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.isStarted()).isTrue();
+    assertThat(actorInstance.getPayloads()).containsExactly(1);
+  }
+
+  @Test
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
+    final MessageHandlingFailureTestActorInstance<Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
+        "test",
+        new ImmediateRestartSupervisionStrategy(),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstanceContext.assignAndStart(actorInstance);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.isStarted()).isTrue();
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
@@ -177,16 +204,17 @@ public class ActorInstanceTest {
     }
   }
 
-  private static class WorkingTestActorInstance<T> extends ActorInstance<T> {
+  private static abstract class TestActorInstance<T> extends ActorInstance<T> {
     @Getter
-    private final List<T> payloads = new LinkedList<>();
+    protected List<Signal> receivedSignals = new LinkedList<>();
 
     @Getter
-    private boolean started = false;
+    protected final List<T> payloads = new LinkedList<>();
 
-    public WorkingTestActorInstance(ActorInstanceContext<T> context, String name,
-                                    SupervisionStrategyInternal supervisionStrategy,
-                                    StartupMode startupMode) {
+    @Getter
+    protected boolean started = false;
+
+    protected TestActorInstance(ActorInstanceContext context, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
       super(context, name, supervisionStrategy, startupMode);
     }
 
@@ -196,15 +224,26 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected void startInstance() {
+    protected void createInstance() {
       started = true;
+    }
+
+    @Override
+    protected void sendSignal(Signal signal) {
+      receivedSignals.add(signal);
     }
   }
 
-  private static class StartupFailingTestActorInstance<T> extends ActorInstance<T> {
-    @Getter
-    private final List<T> payloads = new LinkedList<>();
+  private static class WorkingTestActorInstance<T> extends TestActorInstance<T> {
 
+    public WorkingTestActorInstance(ActorInstanceContext<T> context, String name,
+                                    SupervisionStrategyInternal supervisionStrategy,
+                                    StartupMode startupMode) {
+      super(context, name, supervisionStrategy, startupMode);
+    }
+  }
+
+  private static class StartupFailingTestActorInstance<T> extends TestActorInstance<T> {
     public StartupFailingTestActorInstance(ActorInstanceContext<T> context, String name,
                                            SupervisionStrategyInternal supervisionStrategy,
                                            StartupMode startupMode) {
@@ -212,13 +251,22 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected void handleMessage(Message<T> message) {
-      payloads.add(message.getPayload());
+    protected void createInstance() {
+      throw new IllegalArgumentException();
+    }
+  }
+
+  private static class MessageHandlingFailureTestActorInstance<T> extends TestActorInstance<T> {
+    public MessageHandlingFailureTestActorInstance(ActorInstanceContext<T> context, String name,
+                                                   SupervisionStrategyInternal supervisionStrategy,
+                                                   StartupMode startupMode) {
+      super(context, name, supervisionStrategy, startupMode);
     }
 
     @Override
-    protected void startInstance() {
+    protected void handleMessage(Message<T> message) {
       throw new IllegalArgumentException();
     }
+
   }
 }
