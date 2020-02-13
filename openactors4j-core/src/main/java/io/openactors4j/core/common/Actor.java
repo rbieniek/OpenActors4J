@@ -11,12 +11,5 @@ public interface Actor {
    */
   default void setup(ActorContext context) {
   }
-
-  /**
-   * Receive and handle the passed lifecycle signal
-   *
-   * @param signal
-   */
-  void receiveSignal(Signal signal);
-
+  
 }

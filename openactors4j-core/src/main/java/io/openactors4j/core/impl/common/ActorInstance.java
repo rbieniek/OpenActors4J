@@ -46,6 +46,9 @@ public abstract class ActorInstance<V extends Actor, T> {
   @Getter(PROTECTED)
   private V instance;
 
+  @Getter(PROTECTED)
+  private ActorContextImpl actorContext;
+
   private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
       .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
       .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
@@ -132,6 +135,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void handleNextMessage(final Message<T> message) {
     try {
+      // actorContext.setCurrentSender();
       handleMessage(message);
     } catch (Exception e) {
       transitionState(supervisionStrategy.handleProcessingException(e, this, context));
@@ -150,14 +154,13 @@ public abstract class ActorInstance<V extends Actor, T> {
    */
   private void createInstance() {
     this.instance = instanceSupplier.get();
-  };
+    this.instance.setup(this.actorContext);
+  }
 
   /**
-   *
+   * Handle signal reception
    */
-  private void sendSignal(Signal signal) {
-    this.instance.receiveSignal(signal);
-  };
+  protected abstract void sendSignal(Signal signal);
 
   /**
    * Attempt to start a new actor.
@@ -170,6 +173,8 @@ public abstract class ActorInstance<V extends Actor, T> {
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
     final InstanceState resultState;
+
+    this.actorContext = new ActorContextImpl(context);
 
     switch (startupMode) {
       case DELAYED:

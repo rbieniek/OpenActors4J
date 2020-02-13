@@ -1,6 +1,12 @@
 package io.openactors4j.core.impl.common;
 
+import io.openactors4j.core.common.Actor;
+import io.openactors4j.core.common.ActorRef;
+import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.impl.messaging.Message;
+import io.openactors4j.core.typed.Behavior;
+import io.openactors4j.core.typed.BehaviorBuilder;
+import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -32,7 +38,7 @@ public interface ActorInstanceContext<T> {
   /**
    * Assign the actor instance to this context object and start it
    */
-  void assignAndStart(ActorInstance<T> actorInstance);
+  <V extends Actor> void assignAndStart(ActorInstance<V, T> actorInstance);
 
   /**
    * Submit a runnable to be executed in a threadpool provided by the actor system
@@ -56,4 +62,13 @@ public interface ActorInstanceContext<T> {
    * @return the parent actor instance
    */
   ActorInstance parentActor();
+
+  public <V> BehaviorBuilder<V> newBehaviorBuilder();
+
+  public <V> ActorRef<V> spawn(final Behavior<V> behavior, final String name);
+
+  public UntypedActorBuilder newUntypedActorBuilder();
+
+  public SupervisionStrategies supervisionStrategies();
+
 }

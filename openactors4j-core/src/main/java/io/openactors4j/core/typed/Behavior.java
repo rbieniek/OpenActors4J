@@ -7,4 +7,10 @@ import io.openactors4j.core.common.Signal;
 public interface Behavior<T> extends Actor {
   Behavior<T> receive(T message);
 
+  /**
+   * Receive and handle the passed lifecycle signal
+   *
+   * @param signal
+   */
+  Behavior<T> receiveSignal(Signal signal);
 }
