@@ -11,5 +11,5 @@ public interface Actor {
    */
   default void setup(ActorContext context) {
   }
-  
+
 }

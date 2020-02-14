@@ -1,10 +1,8 @@
 package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.common.Actor;
-import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.impl.messaging.Message;
-import io.openactors4j.core.typed.Behavior;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.concurrent.CompletionStage;
@@ -73,6 +71,7 @@ public interface ActorInstanceContext<T> {
 
   /**
    * Expose the actor system untyped actor builder used for building type-agnostic actors
+   *
    * @return an instance of {@link UntypedActorBuilder}
    */
   UntypedActorBuilder newUntypedActorBuilder();
