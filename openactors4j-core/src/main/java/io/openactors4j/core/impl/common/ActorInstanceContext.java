@@ -63,12 +63,25 @@ public interface ActorInstanceContext<T> {
    */
   ActorInstance parentActor();
 
-  public <V> BehaviorBuilder<V> newBehaviorBuilder();
+  /**
+   * Expose the actor system behavior builder used for creating type-aware actors
+   *
+   * @param <V> the type class to build the actor for
+   * @return an instance of {@link BehaviorBuilder}
+   */
+  <V> BehaviorBuilder<V> newBehaviorBuilder();
 
-  public <V> ActorRef<V> spawn(final Behavior<V> behavior, final String name);
+  /**
+   * Expose the actor system untyped actor builder used for building type-agnostic actors
+   * @return an instance of {@link UntypedActorBuilder}
+   */
+  UntypedActorBuilder newUntypedActorBuilder();
 
-  public UntypedActorBuilder newUntypedActorBuilder();
-
-  public SupervisionStrategies supervisionStrategies();
+  /**
+   * Expose the actor systems factory for {@link io.openactors4j.core.common.SupervisionStrategy}
+   *
+   * @return an implementation of {@link SupervisionStrategies}
+   */
+  SupervisionStrategies supervisionStrategies();
 
 }
