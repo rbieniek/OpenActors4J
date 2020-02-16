@@ -475,7 +475,7 @@ public class UntypedActorBuildImplTest {
     }
 
     @Override
-    public void setContext(ActorContext context) {
+    public void setupContext(ActorContext context) {
 
     }
   }

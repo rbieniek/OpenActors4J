@@ -25,7 +25,7 @@ public class RootGuardian implements UntypedActor {
   }
 
   @Override
-  public void setContext(final ActorContext context) {
+  public void setupContext(final ActorContext context) {
     this.actorContext = actorContext;
   }
 

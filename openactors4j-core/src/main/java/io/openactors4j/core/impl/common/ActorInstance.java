@@ -135,11 +135,15 @@ public abstract class ActorInstance<V extends Actor, T> {
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void handleNextMessage(final Message<T> message) {
     try {
-      // actorContext.setCurrentSender();
+      actorContext.setCurrentSender(context.actorRefForAddress(message.getSender()));
+
       handleMessage(message);
     } catch (Exception e) {
       transitionState(supervisionStrategy.handleProcessingException(e, this, context));
+    } finally {
+      actorContext.setCurrentSender(null);
     }
+
   }
 
   /**
@@ -154,7 +158,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    */
   private void createInstance() {
     this.instance = instanceSupplier.get();
-    this.instance.setup(this.actorContext);
+    this.instance.setupContext(this.actorContext);
   }
 
   /**

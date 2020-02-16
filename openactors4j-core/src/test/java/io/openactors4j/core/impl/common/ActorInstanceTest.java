@@ -3,16 +3,22 @@ package io.openactors4j.core.impl.common;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
+import io.openactors4j.core.common.Actor;
+import io.openactors4j.core.common.ActorContext;
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.NotImplementedException;
 import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
+import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
+import io.openactors4j.core.typed.BehaviorBuilder;
+import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -51,7 +57,8 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final TestActorInstance<Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        () -> new WorkingTestActor(),
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -73,7 +80,8 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final StartupFailingTestActorInstance<Integer> actorInstance = new StartupFailingTestActorInstance<>(actorInstanceContext,
+    final WorkingTestActorInstance<FailingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        () -> new FailingTestActor(),
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -87,7 +95,8 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final WorkingTestActorInstance<Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+    final WorkingTestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        () -> new WorkingTestActor(),
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.DELAYED);
@@ -112,7 +121,8 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final MessageHandlingFailureTestActorInstance<Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
+    final MessageHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
+        () -> new WorkingTestActor(),
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -144,6 +154,14 @@ public class ActorInstanceTest {
 
   @RequiredArgsConstructor
   private static final class TestActorInstanceContext<T> implements ActorInstanceContext<T> {
+    private final MailboxHolder<Message<T>> mailboxHolder = new MailboxHolder<>(new UnboundedMailbox<>());
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    @Getter
+    private final List<Message<T>> undeliverableMessages = new LinkedList<>();
+
+    private ActorInstance<? extends Actor, T> actorInstance;
+
     @Override
     public CompletionStage<Void> runAsync(Runnable runnable) {
       return CompletableFuture.runAsync(runnable, executorService);
@@ -153,14 +171,6 @@ public class ActorInstanceTest {
     public <V> CompletionStage<V> submitAsync(Supplier<V> supplier) {
       return CompletableFuture.supplyAsync(supplier, executorService);
     }
-
-    private final MailboxHolder<Message<T>> mailboxHolder = new MailboxHolder<>(new UnboundedMailbox<>());
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
-
-    @Getter
-    private final List<Message<T>> undeliverableMessages = new LinkedList<>();
-
-    private ActorInstance<T> actorInstance;
 
     @Override
     public void scheduleMessageProcessing() {
@@ -192,7 +202,7 @@ public class ActorInstanceTest {
     }
 
     @Override
-    public void assignAndStart(ActorInstance<T> actorInstance) {
+    public <V extends Actor> void assignAndStart(ActorInstance<V, T> actorInstance) {
       this.actorInstance = actorInstance;
 
       actorInstance.transitionState(InstanceState.RUNNING);
@@ -202,9 +212,29 @@ public class ActorInstanceTest {
     public ActorInstance parentActor() {
       throw new NotImplementedException();
     }
+
+    @Override
+    public <V> BehaviorBuilder<V> newBehaviorBuilder() {
+      return null;
+    }
+
+    @Override
+    public UntypedActorBuilder newUntypedActorBuilder() {
+      return null;
+    }
+
+    @Override
+    public SupervisionStrategies supervisionStrategies() {
+      return null;
+    }
+
+    @Override
+    public ActorRef actorRefForAddress(SystemAddress address) {
+      return null;
+    }
   }
 
-  private static abstract class TestActorInstance<T> extends ActorInstance<T> {
+  private static abstract class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {
     @Getter
     protected List<Signal> receivedSignals = new LinkedList<>();
 
@@ -214,8 +244,8 @@ public class ActorInstanceTest {
     @Getter
     protected boolean started = false;
 
-    protected TestActorInstance(ActorInstanceContext context, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
-      super(context, name, supervisionStrategy, startupMode);
+    protected TestActorInstance(ActorInstanceContext context, Supplier<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
+      super(context, supplier, name, supervisionStrategy, startupMode);
     }
 
     @Override
@@ -224,49 +254,69 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected void createInstance() {
-      started = true;
-    }
-
-    @Override
     protected void sendSignal(Signal signal) {
       receivedSignals.add(signal);
     }
   }
 
-  private static class WorkingTestActorInstance<T> extends TestActorInstance<T> {
+  private static class WorkingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
 
-    public WorkingTestActorInstance(ActorInstanceContext<T> context, String name,
+    public WorkingTestActorInstance(ActorInstanceContext<T> context, Supplier<V> supplier,
+                                    String name,
                                     SupervisionStrategyInternal supervisionStrategy,
                                     StartupMode startupMode) {
-      super(context, name, supervisionStrategy, startupMode);
+      super(context, supplier, name, supervisionStrategy, startupMode);
     }
   }
 
-  private static class StartupFailingTestActorInstance<T> extends TestActorInstance<T> {
-    public StartupFailingTestActorInstance(ActorInstanceContext<T> context, String name,
+  private static class StartupFailingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
+    public StartupFailingTestActorInstance(ActorInstanceContext<T> context,
+                                           Supplier<V> supplier,
+                                           String name,
                                            SupervisionStrategyInternal supervisionStrategy,
                                            StartupMode startupMode) {
-      super(context, name, supervisionStrategy, startupMode);
-    }
+      super(context, supplier, name, supervisionStrategy, startupMode);
 
-    @Override
-    protected void createInstance() {
-      throw new IllegalArgumentException();
+
     }
   }
 
-  private static class MessageHandlingFailureTestActorInstance<T> extends TestActorInstance<T> {
-    public MessageHandlingFailureTestActorInstance(ActorInstanceContext<T> context, String name,
+  private static class MessageHandlingFailureTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
+    public MessageHandlingFailureTestActorInstance(ActorInstanceContext<T> context,
+                                                   Supplier<V> supplier,
+                                                   String name,
                                                    SupervisionStrategyInternal supervisionStrategy,
                                                    StartupMode startupMode) {
-      super(context, name, supervisionStrategy, startupMode);
+      super(context, supplier, name, supervisionStrategy, startupMode);
     }
 
     @Override
     protected void handleMessage(Message<T> message) {
       throw new IllegalArgumentException();
     }
+  }
 
+  private static class WorkingTestActor implements Actor {
+    @Getter
+    private ActorContext context;
+
+    @Override
+    public void setupContext(ActorContext context) {
+      this.context = context;
+    }
+  }
+
+  private static class FailingTestActor implements Actor {
+    @Getter
+    private ActorContext context;
+
+    private FailingTestActor() {
+      throw new IllegalArgumentException();
+    }
+
+    @Override
+    public void setupContext(ActorContext context) {
+      this.context = context;
+    }
   }
 }

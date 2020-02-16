@@ -5,7 +5,7 @@ import io.openactors4j.core.untyped.UntypedActor;
 
 public class SystemGuardian implements UntypedActor {
   @Override
-  public void setContext(final ActorContext context) {
+  public void setupContext(final ActorContext context) {
 
   }
 

@@ -9,7 +9,7 @@ public interface Actor {
    *
    * @param context the context information
    */
-  default void setup(ActorContext context) {
+  default void setupContext(ActorContext context) {
   }
 
 }

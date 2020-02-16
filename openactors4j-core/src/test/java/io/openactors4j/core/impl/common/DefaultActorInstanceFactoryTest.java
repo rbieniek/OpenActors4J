@@ -133,7 +133,7 @@ public class DefaultActorInstanceFactoryTest {
 
   public static class TestUntypedActor implements UntypedActor {
     @Override
-    public void setContext(ActorContext context) {
+    public void setupContext(ActorContext context) {
 
     }
 

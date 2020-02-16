@@ -1,7 +1,9 @@
 package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.common.Actor;
+import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.SupervisionStrategies;
+import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
@@ -83,4 +85,12 @@ public interface ActorInstanceContext<T> {
    */
   SupervisionStrategies supervisionStrategies();
 
+  /**
+   * Build a {@link ActorRef} for a given {@link SystemAddress} to create the sender reference
+   * for an actor in its message processor
+   *
+   * @param address the {@link SystemAddress} to build a reference to
+   * @return an initialized {@link ActorRef}
+   */
+  ActorRef actorRefForAddress(SystemAddress address);
 }
