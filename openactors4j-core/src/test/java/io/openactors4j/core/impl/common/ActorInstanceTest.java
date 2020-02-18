@@ -73,7 +73,6 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
-    assertThat(actorInstance.isStarted()).isTrue();
     assertThat(actorInstance.getPayloads()).containsExactly(1);
   }
 
@@ -106,7 +105,6 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.DELAYED);
-    assertThat(actorInstance.isStarted()).isFalse();
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
@@ -114,7 +112,6 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
-    assertThat(actorInstance.isStarted()).isTrue();
     assertThat(actorInstance.getPayloads()).containsExactly(1);
   }
 
@@ -133,7 +130,6 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
-    assertThat(actorInstance.isStarted()).isTrue();
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
@@ -141,7 +137,6 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
-    assertThat(actorInstance.isStarted()).isTrue();
     assertThat(actorInstance.getPayloads()).containsExactly(1);
   }
 
@@ -240,9 +235,6 @@ public class ActorInstanceTest {
 
     @Getter
     protected final List<T> payloads = new LinkedList<>();
-
-    @Getter
-    protected boolean started = false;
 
     protected TestActorInstance(ActorInstanceContext context, Supplier<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
       super(context, supplier, name, supervisionStrategy, startupMode);
