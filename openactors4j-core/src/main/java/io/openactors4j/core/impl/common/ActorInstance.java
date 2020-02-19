@@ -5,7 +5,6 @@ import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
 import static lombok.AccessLevel.PUBLIC;
 
-
 import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.Signal;
@@ -23,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class models the actual actor instance held in the tree of actors inside the
- * actor system
+ * actor system.
  */
 @RequiredArgsConstructor(access = PROTECTED)
 @Getter(PROTECTED)
@@ -66,19 +65,25 @@ public abstract class ActorInstance<V extends Actor, T> {
    */
   public void transitionState(final InstanceState desiredState) {
     if (instanceState != desiredState) {
-      log.info("Transition actor {} from state {} to new state {}", name, instanceState, desiredState);
+      log.info("Transition actor {} from state {} to new state {}",
+          name,
+          instanceState,
+          desiredState);
       stateMachine.lookup(instanceState, desiredState)
-          .orElseThrow(() -> new IllegalStateException("Cannot transition from state " + instanceState + " to state " + desiredState))
+          .orElseThrow(() -> new IllegalStateException("Cannot transition from state "
+              + instanceState
+              + " to state "
+              + desiredState))
           .apply(desiredState)
           .ifPresent(state -> instanceState = state);
     }
   }
 
   /**
-   * Lookup an actor instance from the path component of a given {@link RoutingSlip}
+   * Lookup an actor instance from the path component of a given {@link RoutingSlip}.
    *
-   * @param routingSlip
-   * @return
+   * @param routingSlip message routing slip
+   * @return an {@link Optional} to an {@link ActorInstance} i
    */
   public Optional<ActorInstance> lookupActorInstance(final RoutingSlip routingSlip) {
     return Optional.empty();
@@ -86,15 +91,17 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   /**
    * Route the incoming message according to its path:
+   *
    * <ul>
    * <li>if the target routing slip has q child path, route the message to the child actor with the
    * name denoted by next path part. If no child actor with a matching name can be found, send the
    * message to the systems unreachable handler</li>
    * <li>if the message if targeted to this actor, enqueue the message into the mailbox</li>
    * </ul>
-   * <p>
-   * If the message is destined for this instance, the message is enqueued.
-   * <b>Please note:</b> If the actor is created with delayed startup, the actor is scheduled for starting
+   *
+   * <p>If the message is destined for this instance, the message is enqueued.
+   * <b>Please note:</b> If the actor is created with delayed startup, the actor is
+   * scheduled for starting
    *
    * @param message the message to be routed
    */
@@ -122,7 +129,8 @@ public abstract class ActorInstance<V extends Actor, T> {
             // No further action required
             break;
           default:
-            throw new IllegalStateException("Cannot handle current instance state " + instanceState);
+            throw new IllegalStateException("Cannot handle current instance state "
+                + instanceState);
         }
 
       }
@@ -130,7 +138,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   /**
-   * handle the next message in the mailbox
+   * handle the next message in the mailbox:
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void handleNextMessage(final Message<T> message) {
@@ -147,14 +155,14 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   /**
-   * Handle a message which is destined for this actor
+   * Handle a message which is destined for this actor:
    *
    * @param message the message to process;
    */
   protected abstract void handleMessage(final Message<T> message);
 
   /**
-   * Create the actor implementation instance
+   * Create the actor implementation instance:
    */
   private void createInstance() {
     this.instance = instanceSupplier.get();
@@ -168,8 +176,10 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   /**
    * Attempt to start a new actor.
+   *
    * <p>
-   * Depending on the start mode, the instance creation is started immediately or delayed until the arrvial of the first message
+   * Depending on the start mode, the instance creation is started
+   * immediately or delayed until the arrvial of the first message:
    *
    * @param desiredState the desired state, ignored in this case
    * @return

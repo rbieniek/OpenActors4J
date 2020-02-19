@@ -11,31 +11,32 @@ import java.util.function.Supplier;
 /**
  * Internal interface to provide contextual information held by the actor system to the
  * (untyped) actor builder implementation without fully exposing the actor system to the
- * builder implementation
+ * builder implementation.
  */
 public interface ActorBuilderContext<T> {
   /**
-   * Obtain the default actor instance factory configured in the surrounding actor system
+   * Obtain the default actor instance factory configured in the surrounding actor system.
    *
    * @return the actor system-wide default
    */
   BiFunction<Class<? extends UntypedActor>, Object[], UntypedActor> defaultInstanceFactory();
 
   /**
-   * Spawn a new untyped actor in the actor system
+   * Spawn a new untyped actor in the actor system.
    *
-   * @param name
-   * @param supplier
-   * @param mailbox
-   * @param supervisionStrategy
-   * @return
+   * @param name actor name
+   * @param supplier instance supplier
+   * @param mailbox message queue for actor
+   * @param supervisionStrategy supervision strategy to be applied
+   * @return a {@link ActorRef} to the newly created actor
    */
   ActorRef spawnUntypedActor(String name, Supplier<? extends UntypedActor> supplier,
-                             Optional<Mailbox> mailbox, Optional<SupervisionStrategyInternal> supervisionStrategy,
+                             Optional<Mailbox> mailbox,
+                             Optional<SupervisionStrategyInternal> supervisionStrategy,
                              Optional<StartupMode> startupMode);
 
   /**
-   * Determine if there is already a sibling actor existing with an equal name
+   * Determine if there is already a sibling actor existing with an equal name.
    *
    * @param name the actor name to be checked
    * @return <b>true</b> if a sibling with the same name already exists, <b>false</b> otherwise

@@ -13,46 +13,49 @@ import java.util.function.Supplier;
 /**
  * Internal interface to provide contextual information and lifecycle methods
  * held by the actor system to the
- * actor instance implementation without fully exposing the actor system
+ * actor instance implementation without fully exposing the actor system.
  */
 public interface ActorInstanceContext<T> {
   /**
    * Ask the actor system to schedule the calling actor instance for processing the next message
-   * in the mailbox
+   * in the mailbox.
    */
   void scheduleMessageProcessing();
 
   /**
    * Ask the actor system to schedule the calling actor instance for processing the next message
-   * in the mailbox
+   * in the mailbox.
    */
   void enqueueMessage(Message<T> message);
 
   /**
-   * The calling actor implementation needs to give an unrouteable message back to the actor system
+   * The calling actor implementation needs to give an unrouteable message back to the
+   * actor system.
    *
    * @param message the message with routing slips and message payload
    */
   void undeliverableMessage(Message<T> message);
 
   /**
-   * Assign the actor instance to this context object and start it
+   * Assign the actor instance to this context object and start it.
    */
   <V extends Actor> void assignAndStart(ActorInstance<V, T> actorInstance);
 
   /**
-   * Submit a runnable to be executed in a threadpool provided by the actor system
+   * Submit a runnable to be executed in a threadpool provided by the actor system.
    *
    * @param runnable the task to be executed
-   * @return a {@link CompletionStage} for handling further processing after the task has been scheduled
+   * @return a {@link CompletionStage} for handling further processing after
+   * the task has been scheduled
    */
   CompletionStage<Void> runAsync(Runnable runnable);
 
   /**
-   * Submit a supplier to be executed in a threadpool provided by the actor system
+   * Submit a supplier to be executed in a threadpool provided by the actor system.
    *
    * @param supplier the task to be executed
-   * @return a {@link CompletionStage} for handling further processing after the task has been scheduled
+   * @return a {@link CompletionStage} for handling further processing after the
+   * task has been scheduled
    */
   <V> CompletionStage<V> submitAsync(Supplier<V> supplier);
 
@@ -64,7 +67,7 @@ public interface ActorInstanceContext<T> {
   ActorInstance parentActor();
 
   /**
-   * Expose the actor system behavior builder used for creating type-aware actors
+   * Expose the actor system behavior builder used for creating type-aware actors.
    *
    * @param <V> the type class to build the actor for
    * @return an instance of {@link BehaviorBuilder}
@@ -72,7 +75,7 @@ public interface ActorInstanceContext<T> {
   <V> BehaviorBuilder<V> newBehaviorBuilder();
 
   /**
-   * Expose the actor system untyped actor builder used for building type-agnostic actors
+   * Expose the actor system untyped actor builder used for building type-agnostic actors.
    *
    * @return an instance of {@link UntypedActorBuilder}
    */
@@ -87,7 +90,7 @@ public interface ActorInstanceContext<T> {
 
   /**
    * Build a {@link ActorRef} for a given {@link SystemAddress} to create the sender reference
-   * for an actor in its message processor
+   * for an actor in its message processor.
    *
    * @param address the {@link SystemAddress} to build a reference to
    * @return an initialized {@link ActorRef}
