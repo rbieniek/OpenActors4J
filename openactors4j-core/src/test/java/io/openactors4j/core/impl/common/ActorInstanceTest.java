@@ -58,7 +58,7 @@ public class ActorInstanceTest {
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
-        () -> new WorkingTestActor(),
+        WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -68,7 +68,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
-    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, Integer.valueOf(1)));
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
 
     Thread.sleep(100);
@@ -80,7 +80,7 @@ public class ActorInstanceTest {
   public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final WorkingTestActorInstance<FailingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
-        () -> new FailingTestActor(),
+        FailingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -95,7 +95,7 @@ public class ActorInstanceTest {
   public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final WorkingTestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
-        () -> new WorkingTestActor(),
+        WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.DELAYED);
@@ -108,7 +108,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
-    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, Integer.valueOf(1)));
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
@@ -119,7 +119,7 @@ public class ActorInstanceTest {
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
     final MessageHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
-        () -> new WorkingTestActor(),
+        WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(),
         StartupMode.IMMEDIATE);
@@ -133,7 +133,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
-    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, Integer.valueOf(1)));
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
@@ -258,18 +258,6 @@ public class ActorInstanceTest {
                                     SupervisionStrategyInternal supervisionStrategy,
                                     StartupMode startupMode) {
       super(context, supplier, name, supervisionStrategy, startupMode);
-    }
-  }
-
-  private static class StartupFailingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
-    public StartupFailingTestActorInstance(ActorInstanceContext<T> context,
-                                           Supplier<V> supplier,
-                                           String name,
-                                           SupervisionStrategyInternal supervisionStrategy,
-                                           StartupMode startupMode) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
-
-
     }
   }
 

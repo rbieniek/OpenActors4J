@@ -164,9 +164,16 @@ public abstract class ActorInstance<V extends Actor, T> {
   /**
    * Create the actor implementation instance:
    */
+  @SuppressWarnings("PMD.AvoidCatchingGenericException")
   private void createInstance() {
-    this.instance = instanceSupplier.get();
-    this.instance.setupContext(this.actorContext);
+    try {
+      this.instance = instanceSupplier.get();
+      this.instance.setupContext(this.actorContext);
+    } catch (Exception e) {
+      log.info("Caught exception on actor instance creation", e);
+
+      throw e;
+    }
   }
 
   /**
