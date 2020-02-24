@@ -14,10 +14,11 @@ import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class ActorInstance<V extends Actor, T> {
 
   private final ActorInstanceContext context;
-  private final Supplier<V> instanceSupplier;
+  private final Callable<V> instanceSupplier;
   @Getter(PUBLIC)
   private final String name;
   private final SupervisionStrategyInternal supervisionStrategy;
@@ -165,9 +166,10 @@ public abstract class ActorInstance<V extends Actor, T> {
    * Create the actor implementation instance:
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
+  @SneakyThrows
   private void createInstance() {
     try {
-      this.instance = instanceSupplier.get();
+      this.instance = instanceSupplier.call();
       this.instance.setupContext(this.actorContext);
     } catch (Exception e) {
       log.info("Caught exception on actor instance creation", e);
@@ -204,7 +206,7 @@ public abstract class ActorInstance<V extends Actor, T> {
       case IMMEDIATE:
         instanceState = InstanceState.STARTING;
 
-        context.runAsync(() -> createInstance())
+        context.runAsync(this::createInstance)
             .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
             .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
             .whenComplete((state, throwable) -> transitionState((InstanceState) state));
@@ -229,10 +231,13 @@ public abstract class ActorInstance<V extends Actor, T> {
     return result;
   }
 
+  @SneakyThrows
   private Object sendPreStartSignalAfterCreation(final Object object, final Throwable throwable) {
 
     if (throwable == null) {
       sendSignal(Signal.PRE_START);
+    } else {
+      throw throwable;
     }
 
     return object;
@@ -241,7 +246,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
     instanceState = InstanceState.STARTING;
 
-    context.runAsync(() -> createInstance())
+    context.runAsync(this::createInstance)
         .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
         .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
         .whenComplete((state, throwable) -> transitionState((InstanceState) state));

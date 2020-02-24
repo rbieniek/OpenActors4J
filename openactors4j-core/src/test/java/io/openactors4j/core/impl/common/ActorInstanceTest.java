@@ -21,6 +21,7 @@ import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -236,7 +237,7 @@ public class ActorInstanceTest {
     @Getter
     protected final List<T> payloads = new LinkedList<>();
 
-    protected TestActorInstance(ActorInstanceContext context, Supplier<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
+    protected TestActorInstance(ActorInstanceContext context, Callable<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
       super(context, supplier, name, supervisionStrategy, startupMode);
     }
 
@@ -253,7 +254,7 @@ public class ActorInstanceTest {
 
   private static class WorkingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
 
-    public WorkingTestActorInstance(ActorInstanceContext<T> context, Supplier<V> supplier,
+    public WorkingTestActorInstance(ActorInstanceContext<T> context, Callable<V> supplier,
                                     String name,
                                     SupervisionStrategyInternal supervisionStrategy,
                                     StartupMode startupMode) {
@@ -263,7 +264,7 @@ public class ActorInstanceTest {
 
   private static class MessageHandlingFailureTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
     public MessageHandlingFailureTestActorInstance(ActorInstanceContext<T> context,
-                                                   Supplier<V> supplier,
+                                                   Callable<V> supplier,
                                                    String name,
                                                    SupervisionStrategyInternal supervisionStrategy,
                                                    StartupMode startupMode) {
