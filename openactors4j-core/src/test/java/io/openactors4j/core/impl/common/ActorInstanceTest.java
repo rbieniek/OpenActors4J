@@ -2,7 +2,6 @@ package io.openactors4j.core.impl.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.ActorRef;
@@ -71,10 +70,11 @@ public class ActorInstanceTest {
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
-
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
   }
 
   @Test
@@ -90,6 +90,8 @@ public class ActorInstanceTest {
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
+    assertThat(actorInstance.getReceivedSignals()).isEmpty();
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
   }
 
   @Test
@@ -107,6 +109,7 @@ public class ActorInstanceTest {
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.DELAYED);
     assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
@@ -114,6 +117,8 @@ public class ActorInstanceTest {
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
   }
 
   @Test
@@ -132,13 +137,16 @@ public class ActorInstanceTest {
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Thread.sleep(100);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.PRE_RESTART);
   }
 
   @RequiredArgsConstructor
@@ -230,7 +238,7 @@ public class ActorInstanceTest {
     }
   }
 
-  private static abstract class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {
+  private static class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {
     @Getter
     protected List<Signal> receivedSignals = new LinkedList<>();
 
@@ -242,19 +250,32 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected void handleMessage(Message<T> message) {
+    protected final void handleMessage(final Message<T> message) {
       payloads.add(message.getPayload());
+
+      handleMessageInternal(message);
+    }
+
+    protected void handleMessageInternal(final Message<T> message) {
+
     }
 
     @Override
-    protected void sendSignal(Signal signal) {
+    protected final void sendSignal(final Signal signal) {
+
       receivedSignals.add(signal);
+      sendSignalInternal(signal);
+    }
+
+    protected void sendSignalInternal(final Signal signal) {
+
     }
   }
 
   private static class WorkingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
 
-    public WorkingTestActorInstance(ActorInstanceContext<T> context, Callable<V> supplier,
+    public WorkingTestActorInstance(ActorInstanceContext<T> context,
+                                    Callable<V> supplier,
                                     String name,
                                     SupervisionStrategyInternal supervisionStrategy,
                                     StartupMode startupMode) {
@@ -272,7 +293,7 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected void handleMessage(Message<T> message) {
+    protected void handleMessageInternal(Message<T> message) {
       throw new IllegalArgumentException();
     }
   }

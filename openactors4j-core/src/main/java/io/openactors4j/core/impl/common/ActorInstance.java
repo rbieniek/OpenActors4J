@@ -1,5 +1,6 @@
 package io.openactors4j.core.impl.common;
 
+import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
@@ -59,7 +60,8 @@ public abstract class ActorInstance<V extends Actor, T> {
       .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
       .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
       .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
-      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed);
+      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
+      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::restartInstance);
 
   /**
    * Move the actor instance to a new state.
@@ -112,9 +114,15 @@ public abstract class ActorInstance<V extends Actor, T> {
     currentPart.ifPresentOrElse(pathPath -> {
       ofNullable(childActors.get(pathPath))
           .ifPresentOrElse(child -> child.routeMessage(message),
-              () -> context.undeliverableMessage(message));
+              () -> {
+                log.info("Actor {} undeliverable message to {}", name, pathPath);
+
+                context.undeliverableMessage(message);
+              });
     }, () -> {
       if (message.getPayload() instanceof DeathNote) {
+        log.info("Actor {} received death note", name);
+
         transitionState(InstanceState.STOPPED);
       } else {
         context.enqueueMessage(message);
@@ -148,6 +156,8 @@ public abstract class ActorInstance<V extends Actor, T> {
 
       handleMessage(message);
     } catch (Exception e) {
+      log.info("Actor {} caught exception in message processing", name, e);
+
       transitionState(supervisionStrategy.handleProcessingException(e, this, context));
     } finally {
       actorContext.setCurrentSender(null);
@@ -160,7 +170,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    *
    * @param message the message to process;
    */
-  protected abstract void handleMessage(final Message<T> message);
+  protected abstract void handleMessage(final Message<T> message) throws Exception;
 
   /**
    * Create the actor implementation instance:
@@ -172,7 +182,7 @@ public abstract class ActorInstance<V extends Actor, T> {
       this.instance = instanceSupplier.call();
       this.instance.setupContext(this.actorContext);
     } catch (Exception e) {
-      log.info("Caught exception on actor instance creation", e);
+      log.info("Caught exception on actor {} instance creation", name, e);
 
       throw e;
     }
@@ -181,7 +191,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   /**
    * Handle signal reception
    */
-  protected abstract void sendSignal(Signal signal);
+  protected abstract void sendSignal(Signal signal) throws RuntimeException;
 
   /**
    * Attempt to start a new actor.
@@ -274,5 +284,12 @@ public abstract class ActorInstance<V extends Actor, T> {
   private Optional<InstanceState> startFailed(final InstanceState desiredState) {
 
     return of(desiredState);
+  }
+
+  private Optional<InstanceState> restartInstance(final InstanceState desiredState) {
+    context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
+        .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
+        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
+    return empty();
   }
 }
