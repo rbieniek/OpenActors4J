@@ -15,6 +15,7 @@ import java.util.function.Supplier;
  * held by the actor system to the
  * actor instance implementation without fully exposing the actor system.
  */
+@SuppressWarnings("PMD.TooManyMethods")
 public interface ActorInstanceContext<T> {
   /**
    * Ask the actor system to schedule the calling actor instance for processing the next message

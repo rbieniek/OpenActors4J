@@ -6,6 +6,7 @@ import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import java.util.function.Function;
 
+@SuppressWarnings("PMD.TooManyMethods")
 public interface BehaviorBuilder<T> {
 
   /**

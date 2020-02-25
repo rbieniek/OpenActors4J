@@ -3,8 +3,6 @@ package io.openactors4j.core.impl.common;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
-import static lombok.AccessLevel.PROTECTED;
-import static lombok.AccessLevel.PUBLIC;
 
 import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
@@ -17,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -26,28 +25,28 @@ import lombok.extern.slf4j.Slf4j;
  * This class models the actual actor instance held in the tree of actors inside the
  * actor system.
  */
-@RequiredArgsConstructor(access = PROTECTED)
-@Getter(PROTECTED)
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter(AccessLevel.PROTECTED)
 @Slf4j
-@SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter"})
+@SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter", "TooManyStaticImports"})
 public abstract class ActorInstance<V extends Actor, T> {
 
   private final ActorInstanceContext context;
   private final Callable<V> instanceSupplier;
-  @Getter(PUBLIC)
+  @Getter(AccessLevel.PUBLIC)
   private final String name;
   private final SupervisionStrategyInternal supervisionStrategy;
   private final StartupMode startupMode;
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
 
-  @Getter(PUBLIC)
+  @Getter(AccessLevel.PUBLIC)
   private InstanceState instanceState = InstanceState.NEW;
 
-  @Getter(PROTECTED)
+  @Getter(AccessLevel.PROTECTED)
   private V instance;
 
-  @Getter(PROTECTED)
+  @Getter(AccessLevel.PROTECTED)
   private ActorContextImpl actorContext;
 
   private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
@@ -62,8 +61,7 @@ public abstract class ActorInstance<V extends Actor, T> {
       .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
       .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
       .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
-      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
-      ;
+      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete);
 
   /**
    * Move the actor instance to a new state.
@@ -91,7 +89,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    * @return an {@link Optional} to an {@link ActorInstance} i
    */
   public Optional<ActorInstance> lookupActorInstance(final RoutingSlip routingSlip) {
-    return Optional.empty();
+    return empty();
   }
 
   /**
@@ -172,6 +170,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    *
    * @param message the message to process;
    */
+  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
   protected abstract void handleMessage(final Message<T> message) throws Exception;
 
   /**
@@ -193,6 +192,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   /**
    * Handle signal reception
    */
+  @SuppressWarnings( {"PMD.SignatureDeclareThrowsException", "PMD.AvoidUncheckedExceptionsInSignatures"})
   protected abstract void sendSignal(Signal signal) throws RuntimeException;
 
   /**
@@ -263,7 +263,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
         .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 
-    return Optional.empty();
+    return empty();
   }
 
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
