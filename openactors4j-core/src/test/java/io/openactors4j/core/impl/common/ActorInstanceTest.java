@@ -18,6 +18,7 @@ import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -66,6 +67,11 @@ public class ActorInstanceTest {
 
     actorInstanceContext.assignAndStart(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
@@ -124,7 +130,7 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final MessageHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
         WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(),
@@ -143,10 +149,10 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Thread.sleep(100);
-    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.PRE_RESTART);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
   }
 
   @RequiredArgsConstructor
@@ -179,19 +185,21 @@ public class ActorInstanceTest {
     @Override
     public void scheduleMessageProcessing() {
       if (mailboxHolder.getProcessingLock().tryLock()) {
-        CompletableFuture.runAsync(() -> mailboxHolder
-            .getMailbox()
-            .takeMessage()
-            .ifPresent(message -> actorInstance.handleNextMessage(message)), executorService)
-            .whenComplete((s, t) -> {
-              final boolean needReschedule = mailboxHolder.getMailbox().needsScheduling();
+        try {
+          CompletableFuture.runAsync(() -> mailboxHolder
+              .getMailbox()
+              .takeMessage()
+              .ifPresent(message -> actorInstance.handleNextMessage(message)), executorService)
+              .whenComplete((s, t) -> {
+                final boolean needReschedule = mailboxHolder.getMailbox().needsScheduling();
 
-              mailboxHolder.getProcessingLock().unlock();
-
-              if (needReschedule) {
-                scheduleMessageProcessing();
-              }
-            });
+                if (needReschedule) {
+                  scheduleMessageProcessing();
+                }
+              });
+        } finally {
+          mailboxHolder.getProcessingLock().unlock();
+        }
       }
     }
 
@@ -240,10 +248,10 @@ public class ActorInstanceTest {
 
   private static class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {
     @Getter
-    protected List<Signal> receivedSignals = new LinkedList<>();
+    private List<Signal> receivedSignals = new LinkedList<>();
 
     @Getter
-    protected final List<T> payloads = new LinkedList<>();
+    private final List<T> payloads = Collections.synchronizedList(new LinkedList<>());
 
     protected TestActorInstance(ActorInstanceContext context, Callable<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
       super(context, supplier, name, supervisionStrategy, startupMode);

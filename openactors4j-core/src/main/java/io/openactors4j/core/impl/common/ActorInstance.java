@@ -61,7 +61,9 @@ public abstract class ActorInstance<V extends Actor, T> {
       .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
       .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
       .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
-      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::restartInstance);
+      .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
+      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
+      ;
 
   /**
    * Move the actor instance to a new state.
