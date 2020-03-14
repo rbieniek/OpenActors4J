@@ -97,4 +97,9 @@ public interface ActorInstanceContext<T> {
    * @return an initialized {@link ActorRef}
    */
   ActorRef actorRefForAddress(SystemAddress address);
+
+  /**
+   * Notify the actor system (through the instance context) about the instance shutdown
+   */
+  void actorInstanceStopped();
 }

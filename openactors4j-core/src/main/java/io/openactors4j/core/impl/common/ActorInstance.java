@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,8 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   @Getter(AccessLevel.PROTECTED)
   private ActorContextImpl actorContext;
+
+  private Consumer<Message<T>> deathNoteHandler = this::standardDeathNoteHandler;
 
   private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
       .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
@@ -123,7 +126,7 @@ public abstract class ActorInstance<V extends Actor, T> {
       if (message.getPayload() instanceof DeathNote) {
         log.info("Actor {} received death note", name);
 
-        transitionState(InstanceState.STOPPED);
+        deathNoteHandler.accept(message);
       } else {
         context.enqueueMessage(message);
 
@@ -144,6 +147,20 @@ public abstract class ActorInstance<V extends Actor, T> {
 
       }
     });
+  }
+
+  private void standardDeathNoteHandler(final Message<T> message) {
+    log.info("Actor {} received death note", name);
+
+    childActors.values().forEach(child -> child.routeMessage(message));
+
+    transitionState(InstanceState.STOPPED);
+  }
+
+  private void systemActorDeathNoteHandler(final Message<T> message) {
+    log.info("Actor {} ignores received death note", name);
+
+    context.undeliverableMessage(message);
   }
 
   /**
@@ -182,6 +199,12 @@ public abstract class ActorInstance<V extends Actor, T> {
     try {
       this.instance = instanceSupplier.call();
       this.instance.setupContext(this.actorContext);
+
+      if(this.instance instanceof SystemActor) {
+        log.info("Enabling system actor behavior for actor {}", name);
+
+        deathNoteHandler = this::systemActorDeathNoteHandler;
+      }
     } catch (Exception e) {
       log.info("Caught exception on actor {} instance creation", name, e);
 
@@ -267,6 +290,15 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
+    context.runAsync(() -> sendSignal(Signal.POST_STOP))
+        .whenComplete((state, throwable) -> {
+          if(throwable != null) {
+            log.info("Actor failed to process stop signal",
+                throwable);
+          }
+        });
+
+    context.actorInstanceStopped();
 
     return of(InstanceState.STOPPED);
   }

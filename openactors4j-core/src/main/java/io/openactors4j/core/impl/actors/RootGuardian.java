@@ -2,9 +2,10 @@ package io.openactors4j.core.impl.actors;
 
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.UnboundedMailbox;
+import io.openactors4j.core.impl.common.SystemActor;
 import io.openactors4j.core.untyped.UntypedActor;
 
-public class RootGuardian implements UntypedActor {
+public class RootGuardian implements UntypedActor, SystemActor {
   private ActorContext actorContext;
 
   @Override

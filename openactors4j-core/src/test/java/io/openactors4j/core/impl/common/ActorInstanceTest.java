@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.ActorRef;
+import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.NotImplementedException;
 import io.openactors4j.core.common.Signal;
@@ -81,6 +82,8 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
   @Test
@@ -98,6 +101,8 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
     assertThat(actorInstance.getReceivedSignals()).isEmpty();
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
   @Test
@@ -125,6 +130,8 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
   @Test
@@ -153,7 +160,70 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.PRE_RESTART);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
+
+  @Test
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndDeathNote() throws InterruptedException {
+    final TestActorInstanceContext<Object> actorInstanceContext = new TestActorInstanceContext<>();
+    final TestActorInstance<WorkingTestActor, Object> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        WorkingTestActor::new,
+        "test",
+        new ImmediateRestartSupervisionStrategy(),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstanceContext.assignAndStart(actorInstance);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, DeathNote.INSTANCE));
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.POST_STOP);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+  }
+
+  @Test
+  public void shouldCreateStartedSystemActorWithImmediateStartAndImmediateSupervisionAndIgnoredDeathNote() throws InterruptedException {
+    final TestActorInstanceContext<Object> actorInstanceContext = new TestActorInstanceContext<>();
+    final TestActorInstance<SystemTestActor, Object> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        SystemTestActor::new,
+        "system",
+        new ImmediateRestartSupervisionStrategy(),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstanceContext.assignAndStart(actorInstance);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, DeathNote.INSTANCE));
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+  }
+
 
   @RequiredArgsConstructor
   @Getter
@@ -164,11 +234,19 @@ public class ActorInstanceTest {
 
   @RequiredArgsConstructor
   private static final class TestActorInstanceContext<T> implements ActorInstanceContext<T> {
+    public enum TestInstanceState {
+      ACTIVE,
+      STOPPED;
+    }
+
     private final MailboxHolder<Message<T>> mailboxHolder = new MailboxHolder<>(new UnboundedMailbox<>());
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Getter
     private final List<Message<T>> undeliverableMessages = new LinkedList<>();
+
+    @Getter
+    private TestInstanceState instanceState = TestInstanceState.ACTIVE;
 
     private ActorInstance<? extends Actor, T> actorInstance;
 
@@ -243,6 +321,11 @@ public class ActorInstanceTest {
     @Override
     public ActorRef actorRefForAddress(SystemAddress address) {
       return null;
+    }
+
+    @Override
+    public void actorInstanceStopped() {
+      this.instanceState = TestInstanceState.STOPPED;
     }
   }
 
@@ -323,6 +406,16 @@ public class ActorInstanceTest {
     private FailingTestActor() {
       throw new IllegalArgumentException();
     }
+
+    @Override
+    public void setupContext(ActorContext context) {
+      this.context = context;
+    }
+  }
+
+  private static class SystemTestActor implements Actor, SystemActor {
+    @Getter
+    private ActorContext context;
 
     @Override
     public void setupContext(ActorContext context) {
