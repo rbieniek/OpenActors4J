@@ -8,6 +8,7 @@ import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
+import io.openactors4j.core.impl.messaging.ExtendedMessage;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
@@ -123,10 +124,23 @@ public abstract class ActorInstance<V extends Actor, T> {
                 context.undeliverableMessage(message);
               });
     }, () -> {
-      if (message.getPayload() instanceof DeathNote) {
-        log.info("Actor {} received death note", name);
+      log.info("Actor {} received message {}", name, message);
 
-        deathNoteHandler.accept(message);
+      if (message instanceof ExtendedMessage) {
+        final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>)message;
+
+        log.info("Actor {} received extended message {}", name, extendedMessage);
+
+        if (extendedMessage.getExtensionData() instanceof DeathNote) {
+          log.info("Actor {} received death note", name);
+
+          deathNoteHandler.accept(message);
+        } else {
+          log.info("Actor {} received unhandleable extension data {}", name,
+              extendedMessage.getExtensionData());
+
+          context.undeliverableMessage(message);
+        }
       } else {
         context.enqueueMessage(message);
 
