@@ -24,9 +24,9 @@ public interface ActorBuilderContext<T> {
   /**
    * Spawn a new untyped actor in the actor system.
    *
-   * @param name actor name
-   * @param supplier instance supplier
-   * @param mailbox message queue for actor
+   * @param name                actor name
+   * @param supplier            instance supplier
+   * @param mailbox             message queue for actor
    * @param supervisionStrategy supervision strategy to be applied
    * @return a {@link ActorRef} to the newly created actor
    */

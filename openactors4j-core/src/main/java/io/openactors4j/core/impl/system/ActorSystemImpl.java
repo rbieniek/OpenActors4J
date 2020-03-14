@@ -138,7 +138,7 @@ public class ActorSystemImpl implements ActorSystem, Closeable {
         .path("/")
         .build());
 
-    supervisions = new SupervisionStrategiesImpl();
+    supervisions = new SupervisionStrategiesImpl(timerExecutorService);
 
     log.info("Started actor system {} with bindings {}",
         systemName,

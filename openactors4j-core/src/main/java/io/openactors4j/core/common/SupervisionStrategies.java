@@ -8,10 +8,24 @@ import java.time.Duration;
 public interface SupervisionStrategies {
   /**
    * Access a supervision strategy to restart the actor immediately after it crashes
+   * <p>
+   * The strategy can impose a restart limit which cause the actor to terminate itself if the
+   * limit is reached
    *
    * @return the supervision strategy
    */
   SupervisionStrategy restart();
+
+  /**
+   * Access a supervision strategy to restart the actor immediately after it crashes
+   * <p>
+   * The strategy can impose a restart limit which cause the actor to terminate itself if the
+   * limit is reached
+   *
+   * @param maxRestarts maximum number of restart attempts. If set {@code 0}, no boundary is set
+   * @return the supervision strategy
+   */
+  SupervisionStrategy restart(int maxRestarts);
 
   /**
    * Access a supervision strategy to terminate the actor and remove it from the
@@ -51,6 +65,27 @@ public interface SupervisionStrategies {
   SupervisionStrategy delayedRestart(Duration restartPeriod);
 
   /**
+   * Access a supervision strategy to schedule the future restart the actor after it crashes
+   * <p>
+   * In case the actor restart fails, the actor restart is attempted again after the
+   * given restart period
+   * <p>
+   * The strategy can impose a restart limit which cause the actor to terminate itself if the
+   * limit is reached
+   *
+   * <p>
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
+   * </p>
+   *
+   * @param restartPeriod the minimum duration before the actor restart is attempted
+   * @param maxRestarts   maximum number of restart attempts. If set {@code 0}, no boundary is set
+   * @return the supervision strategy
+   */
+  SupervisionStrategy delayedRestart(int maxRestarts, Duration restartPeriod);
+
+  /**
    * Access a supervision strategy to schedule the future restart the actor after it crashes.
    * <p>
    * In case the actor restart fails, the actor restart is attempted again after the
@@ -74,6 +109,29 @@ public interface SupervisionStrategies {
    * <p>
    * In case the actor restart fails, the actor restart is attempted again after the
    * given restart period extended by the backoff period for any subsequent retry
+   * <p>
+   * The strategy can impose a restart limit which cause the actor to terminate itself if the
+   * limit is reached
+   *
+   * <p>
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
+   * </p>
+   *
+   * @param maxRestarts   maximum number of restart attempts. If set {@code 0}, no boundary is set
+   * @param restartPeriod the minimum duration before the actor restart is attempted
+   * @param backoffPeriod this period is added to the restart period in case the actor
+   *                      restart fails and another attempt needs to be scheduled
+   * @return the supervision strategy
+   */
+  SupervisionStrategy delayedRestart(int maxRestarts, Duration restartPeriod, Duration backoffPeriod);
+
+  /**
+   * Access a supervision strategy to schedule the future restart the actor after it crashes.
+   * <p>
+   * In case the actor restart fails, the actor restart is attempted again after the
+   * given restart period extended by the backoff period for any subsequent retry
    *
    * <p>
    * <b>Please note:</b> the restart period is the duration within which the actor is blocked
@@ -88,4 +146,28 @@ public interface SupervisionStrategies {
    * @return the supervision strategy
    */
   SupervisionStrategy delayedRestart(Duration restartPeriod, Duration backoffPeriod, int backoffFactor);
+
+  /**
+   * Access a supervision strategy to schedule the future restart the actor after it crashes.
+   * <p>
+   * In case the actor restart fails, the actor restart is attempted again after the
+   * given restart period extended by the backoff period for any subsequent retry
+   * <p>
+   * The strategy can impose a restart limit which cause the actor to terminate itself if the
+   * limit is reached
+   *
+   * <p>
+   * <b>Please note:</b> the restart period is the duration within which the actor is blocked
+   * from a restart attempt. The actor system may delay the restart further, depending on system
+   * conditions
+   * </p>
+   *
+   * @param maxRestarts   maximum number of restart attempts. If set {@code 0}, no boundary is set
+   * @param restartPeriod the minimum duration before the actor restart is attempted
+   * @param backoffPeriod this period is added to the restart period in case the actor
+   *                      restart fails and another attempt needs to be scheduled
+   * @param backoffFactor a liner factor applied to the backoff period on subsequent retry attempts
+   * @return the supervision strategy
+   */
+  SupervisionStrategy delayedRestart(int maxRestarts, Duration restartPeriod, Duration backoffPeriod, int backoffFactor);
 }

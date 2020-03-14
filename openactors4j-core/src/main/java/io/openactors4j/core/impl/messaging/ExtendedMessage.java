@@ -2,12 +2,11 @@ package io.openactors4j.core.impl.messaging;
 
 import io.openactors4j.core.common.SystemAddress;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
  * Type-safe extension of {@link Message} to carry extended data.
- *
+ * <p>
  * This message type is used to carry special messages like
  * {@link io.openactors4j.core.common.DeathNote} in a type-safe manner
  *
@@ -16,7 +15,7 @@ import lombok.ToString;
  */
 @Getter
 @ToString(callSuper = true)
-public class ExtendedMessage<T,V> extends Message<T> {
+public class ExtendedMessage<T, V> extends Message<T> {
   public ExtendedMessage(final RoutingSlip target, final SystemAddress sender,
                          final T payload, final V extensionData) {
     super(target, sender, payload);
