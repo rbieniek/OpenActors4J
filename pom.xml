@@ -59,6 +59,8 @@
         <java.lib.slf4j>1.7.29</java.lib.slf4j>
         <java.lib.commons.lang>3.9</java.lib.commons.lang>
         <java.lib.spotbugs>4.0.0-beta4</java.lib.spotbugs>
+        <java.lib.spotbugs.contrib>7.4.7</java.lib.spotbugs.contrib>
+        <java.lib.spotbugs.security>1.10.1</java.lib.spotbugs.security>
         <java.lib.checkstyle>8.29</java.lib.checkstyle>
         <java.lib.pmd>6.21.0</java.lib.pmd>
         <java.lib.opentracing>0.33.0</java.lib.opentracing>
@@ -462,6 +464,16 @@
                             <groupId>com.github.spotbugs</groupId>
                             <artifactId>spotbugs</artifactId>
                             <version>${java.lib.spotbugs}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.mebigfatguy.fb-contrib</groupId>
+                            <artifactId>fb-contrib</artifactId>
+                            <version>${java.lib.spotbugs.contrib}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${java.lib.spotbugs.security}</version>
                         </dependency>
                     </dependencies>
                     <executions>
