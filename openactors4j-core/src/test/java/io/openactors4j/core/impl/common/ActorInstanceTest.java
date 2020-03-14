@@ -256,6 +256,97 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
+//--
+@Test
+public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndUnknownExtension() throws InterruptedException {
+  final TestActorInstanceContext<Object> actorInstanceContext = new TestActorInstanceContext<>();
+  final TestActorInstance<WorkingTestActor, Object> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+      WorkingTestActor::new,
+      "test",
+      new ImmediateRestartSupervisionStrategy(),
+      StartupMode.IMMEDIATE);
+  final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+  actorInstanceContext.assignAndStart(actorInstance);
+  assertThat(actorInstance.getPayloads()).isEmpty();
+
+  Thread.sleep(100);
+  assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+  assertThat(actorInstance.getPayloads()).isEmpty();
+  assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+  targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+  actorInstance.routeMessage(new ExtendedMessage<>(targetSlip, sourceAddress, new Object()));
+
+  Thread.sleep(100);
+  assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+  assertThat(actorInstance.getPayloads()).isEmpty();
+  assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+  assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
+  assertThat(actorInstanceContext.getInstanceState())
+      .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+}
+
+  @Test
+  public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervisionAndUnknownExtension() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
+    final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        FailedCreationTestActor::new,
+        "test",
+        new ImmediateRestartSupervisionStrategy(),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstanceContext.assignAndStart(actorInstance);
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
+    assertThat(actorInstance.getReceivedSignals()).isEmpty();
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new ExtendedMessage<>(targetSlip, sourceAddress, new Object()));
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).isEmpty();
+    assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+  }
+
+  @Test
+  public void shouldCreateStartedSystemActorWithImmediateStartAndImmediateSupervisionAndUnknownExtension() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
+    final TestActorInstance<SystemTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+        SystemTestActor::new,
+        "system",
+        new ImmediateRestartSupervisionStrategy(),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstanceContext.assignAndStart(actorInstance);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new ExtendedMessage<>(targetSlip, sourceAddress, new Object()));
+
+    Thread.sleep(100);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+  }
 
   @RequiredArgsConstructor
   @Getter

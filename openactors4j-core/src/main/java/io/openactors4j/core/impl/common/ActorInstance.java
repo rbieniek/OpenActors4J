@@ -124,12 +124,8 @@ public abstract class ActorInstance<V extends Actor, T> {
                 context.undeliverableMessage(message);
               });
     }, () -> {
-      log.info("Actor {} received message {}", name, message);
-
       if (message instanceof ExtendedMessage) {
         final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>)message;
-
-        log.info("Actor {} received extended message {}", name, extendedMessage);
 
         if (extendedMessage.getExtensionData() instanceof DeathNote) {
           log.info("Actor {} received death note", name);
