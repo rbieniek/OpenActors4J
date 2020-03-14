@@ -10,20 +10,30 @@ import io.openactors4j.core.impl.common.DelayedRestartSupervisionStrategy;
 import io.openactors4j.core.impl.common.ImmediateRestartSupervisionStrategy;
 import io.openactors4j.core.impl.common.TerminateSupervisionStrategy;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class SupervisionStrategiesImpl implements SupervisionStrategies {
-  private final SupervisionStrategyInternal immediateRestartStrategy = new ImmediateRestartSupervisionStrategy();
-  private final SupervisionStrategyInternal terminaStrategy = new TerminateSupervisionStrategy();
+  private final SupervisionStrategyInternal terminateStrategy = new TerminateSupervisionStrategy();
   private final SupervisionStrategyInternal bubbleUpStrategy = new BubbleUpSupervisionStrategy();
+
+  private final ExecutorService timerExecutorService;
 
   @Override
   public SupervisionStrategy restart() {
-    return immediateRestartStrategy;
+    return new ImmediateRestartSupervisionStrategy(0);
+  }
+
+  @Override
+  public SupervisionStrategy restart(int maxRestarts) {
+    return new ImmediateRestartSupervisionStrategy(maxRestarts);
   }
 
   @Override
   public SupervisionStrategy terminate() {
-    return terminaStrategy;
+    return terminateStrategy;
   }
 
   @Override
@@ -33,25 +43,64 @@ public class SupervisionStrategiesImpl implements SupervisionStrategies {
 
   @Override
   public SupervisionStrategy delayedRestart(final Duration restartPeriod) {
-    return DelayedRestartSupervisionStrategy.builder()
-        .restartPeriod(restartPeriod)
-        .build();
+    return new DelayedRestartSupervisionStrategy(0,
+        restartPeriod,
+        Optional.empty(),
+        Optional.empty(),
+        timerExecutorService);
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(final Duration restartPeriod, final Duration backoffPeriod) {
-    return DelayedRestartSupervisionStrategy.builder()
-        .restartPeriod(restartPeriod)
-        .backoffPeriod(of(backoffPeriod))
-        .build();
+  public SupervisionStrategy delayedRestart(final int maxRestarts,
+                                            final Duration restartPeriod) {
+    return new DelayedRestartSupervisionStrategy(maxRestarts,
+        restartPeriod,
+        Optional.empty(),
+        Optional.empty(),
+        timerExecutorService);
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(final Duration restartPeriod, final Duration backoffPeriod, final int backoffFactor) {
-    return DelayedRestartSupervisionStrategy.builder()
-        .restartPeriod(restartPeriod)
-        .backoffPeriod(of(backoffPeriod))
-        .backoffFactor(of(backoffFactor))
-        .build();
+  public SupervisionStrategy delayedRestart(final Duration restartPeriod,
+                                            final Duration backoffPeriod) {
+    return new DelayedRestartSupervisionStrategy(0,
+        restartPeriod,
+        Optional.ofNullable(backoffPeriod),
+        Optional.empty(),
+        timerExecutorService);
+  }
+
+  @Override
+  public SupervisionStrategy delayedRestart(final int maxRestarts,
+                                            final Duration restartPeriod,
+                                            final Duration backoffPeriod) {
+    return new DelayedRestartSupervisionStrategy(maxRestarts,
+        restartPeriod,
+        Optional.ofNullable(backoffPeriod),
+        Optional.empty(),
+        timerExecutorService);
+  }
+
+  @Override
+  public SupervisionStrategy delayedRestart(final Duration restartPeriod,
+                                            final Duration backoffPeriod,
+                                            final int backoffFactor) {
+    return new DelayedRestartSupervisionStrategy(0,
+        restartPeriod,
+        Optional.ofNullable(backoffPeriod),
+        Optional.of(backoffFactor),
+        timerExecutorService);
+  }
+
+  @Override
+  public SupervisionStrategy delayedRestart(int maxRestarts,
+                                            final Duration restartPeriod,
+                                            final Duration backoffPeriod,
+                                            final int backoffFactor) {
+    return new DelayedRestartSupervisionStrategy(maxRestarts,
+        restartPeriod,
+        Optional.ofNullable(backoffPeriod),
+        Optional.of(backoffFactor),
+        timerExecutorService);
   }
 }

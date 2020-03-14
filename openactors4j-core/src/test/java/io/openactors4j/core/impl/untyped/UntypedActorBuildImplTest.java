@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.Mailbox;
+import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.UnboundedMailbox;
@@ -188,7 +189,12 @@ public class UntypedActorBuildImplTest {
             .build())
         .withSupervisionStrategy(new SupervisionStrategyInternal() {
           @Override
-          public InstanceState handleProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context) {
+          public InstanceState handleSignalProcessingException(Throwable signalThrowable, Signal signal, ActorInstance actorInstance, ActorInstanceContext context) {
+            return InstanceState.RUNNING;
+          }
+
+          @Override
+          public InstanceState handleMessageProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context) {
             return InstanceState.RUNNING;
           }
         })
