@@ -15,9 +15,16 @@ public class BubbleUpSupervisionStrategyTest {
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.SUSPENDED);
+        .isEmpty();
   }
 
+  @Test
+  public void shouldHandleActorCreationException() {
+    Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .isEmpty();
+  }
 
   @Test
   public void shouldHandleSignalProcessingException() {
@@ -25,6 +32,6 @@ public class BubbleUpSupervisionStrategyTest {
         Signal.PRE_START,
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.SUSPENDED);
+        .isEmpty();
   }
 }

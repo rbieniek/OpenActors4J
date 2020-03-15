@@ -13,27 +13,54 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
   private AtomicInteger retryCounter = new AtomicInteger(0);
 
   @Override
-  public InstanceState handleMessageProcessingException(final Exception processingException,
+  public Optional<InstanceState> handleMessageProcessingException(final Exception processingException,
                                                         final ActorInstance actorInstance,
                                                         final ActorInstanceContext context) {
-    return incrementAndCheckRetryCounter(Optional.of(maxRetries)
-        .filter(value -> value > 0))
-        .orElse(InstanceState.RUNNING);
+    return Optional.of(incrementAndCheckRetryCounter(Optional.of(maxRetries)
+        .filter(value -> value > 0), InstanceState.STOPPING)
+        .orElse(InstanceState.RESTARTING));
   }
 
   @Override
-  public InstanceState handleSignalProcessingException(final Throwable signalThrowable,
+  public Optional<InstanceState> handleSignalProcessingException(final Throwable signalThrowable,
                                                        final Signal signal,
                                                        final ActorInstance actorInstance,
                                                        final ActorInstanceContext context) {
-    return incrementAndCheckRetryCounter(Optional.of(maxRetries)
-        .filter(value -> value > 0))
-        .orElse(InstanceState.RUNNING);
+    return Optional.of(incrementAndCheckRetryCounter(Optional.of(maxRetries)
+        .filter(value -> value > 0), InstanceState.STOPPING)
+        .orElse(determineStateFromSignal(signal)));
   }
 
-  private Optional<InstanceState> incrementAndCheckRetryCounter(final Optional<Integer> maxRetries) {
+  @Override
+  public Optional<InstanceState> handleActorCreationException(final Throwable signalThrowable,
+                                                              final ActorInstance actorInstance,
+                                                              final ActorInstanceContext context) {
+    return Optional.of(incrementAndCheckRetryCounter(Optional.of(maxRetries)
+        .filter(value -> value > 0), InstanceState.STOPPED)
+        .orElse(InstanceState.CREATING));
+  }
+
+  private Optional<InstanceState> incrementAndCheckRetryCounter(final Optional<Integer> maxRetries,
+                                                                final InstanceState stopState) {
     return maxRetries
         .filter(value -> value < retryCounter.incrementAndGet())
-        .map(value -> InstanceState.STOPPED);
+        .map(value -> stopState);
+  }
+
+  private InstanceState determineStateFromSignal(final Signal signal) {
+    final InstanceState instanceState;
+
+    switch(signal) {
+      case PRE_START:
+       instanceState = InstanceState.STARTING;
+       break;
+      case PRE_RESTART:
+        instanceState = InstanceState.RESTARTING;
+        break;
+      default:
+        instanceState = InstanceState.STOPPED;
+    }
+
+    return instanceState;
   }
 }

@@ -5,6 +5,7 @@ import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.common.ActorInstance;
 import io.openactors4j.core.impl.common.ActorInstanceContext;
 import io.openactors4j.core.impl.common.InstanceState;
+import java.util.Optional;
 
 /**
  * Internal extension interface for modeling common functionality of supervision strategies
@@ -19,7 +20,7 @@ public interface SupervisionStrategyInternal extends SupervisionStrategy {
    * @param context             the actor instance context
    * @return the next state to transisition the instance to
    */
-  InstanceState handleMessageProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context);
+  Optional<InstanceState> handleMessageProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context);
 
   /**
    * Handle signal-processing failure
@@ -30,5 +31,16 @@ public interface SupervisionStrategyInternal extends SupervisionStrategy {
    * @param context         the actor instance context
    * @return the next state to transisition the instance to
    */
-  InstanceState handleSignalProcessingException(Throwable signalThrowable, Signal signal, ActorInstance actorInstance, ActorInstanceContext context);
+  Optional<InstanceState> handleSignalProcessingException(Throwable signalThrowable, Signal signal, ActorInstance actorInstance, ActorInstanceContext context);
+
+  /**
+   * Handle instance creation failure
+   *
+   * @param signalThrowable the exception raised by the message handler
+   * @param actorInstance   the actor instance holding the actor which failed the signal processing
+   * @param context         the actor instance context
+   * @return the next state to transisition the instance to
+   */
+  Optional<InstanceState> handleActorCreationException(Throwable signalThrowable, ActorInstance actorInstance, ActorInstanceContext context);
+
 }

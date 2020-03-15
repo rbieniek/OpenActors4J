@@ -30,35 +30,43 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
   private AtomicInteger currentBackoffFactor = new AtomicInteger(0);
 
   @Override
-  public InstanceState handleMessageProcessingException(final Exception processingException,
-                                                        final ActorInstance actorInstance,
-                                                        final ActorInstanceContext context) {
-    return handleExceptionInternal(actorInstance);
+  public Optional<InstanceState> handleMessageProcessingException(final Exception processingException,
+                                                                  final ActorInstance actorInstance,
+                                                                  final ActorInstanceContext context) {
+    return handleExceptionInternal(actorInstance, InstanceState.RESTARTING);
   }
 
   @Override
-  public InstanceState handleSignalProcessingException(final Throwable signalThrowable,
-                                                       final Signal signal,
-                                                       final ActorInstance actorInstance,
-                                                       final ActorInstanceContext context) {
-    return handleExceptionInternal(actorInstance);
+  public Optional<InstanceState> handleSignalProcessingException(final Throwable signalThrowable,
+                                                                 final Signal signal,
+                                                                 final ActorInstance actorInstance,
+                                                                 final ActorInstanceContext context) {
+    return handleExceptionInternal(actorInstance, determineStateFromSignal(signal));
   }
 
-  private InstanceState handleExceptionInternal(final ActorInstance actorInstance) {
-    final InstanceState instanceState = incrementAndCheckRetryCounter(Optional.of(maxRestarts)
-        .filter(value -> value > 0))
-        .orElse(InstanceState.RESTARTING_DELAYED);
+  @Override
+  public Optional<InstanceState> handleActorCreationException(final Throwable signalThrowable,
+                                                              final ActorInstance actorInstance,
+                                                              final ActorInstanceContext context) {
+    return handleExceptionInternal(actorInstance, InstanceState.CREATING);
+  }
 
-    if (instanceState == InstanceState.RESTARTING_DELAYED) {
+  private Optional<InstanceState> handleExceptionInternal(final ActorInstance actorInstance,
+                                                          final InstanceState wakeupState) {
+    final Optional<InstanceState> instanceState = incrementAndCheckRetryCounter(Optional.of(maxRestarts)
+        .filter(value -> value > 0));
+
+    if (!instanceState.isPresent()) {
       CompletableFuture.delayedExecutor(calculateRestartPeriod().toMillis(),
           TimeUnit.MILLISECONDS,
           timerExecutorService).execute(() -> {
         try {
-          actorInstance.transitionState(InstanceState.RUNNING);
+          actorInstance.transitionState(wakeupState);
         } catch (final IllegalStateException ise) {
           log.warn("Cannot execute state transition on actor {}", actorInstance.getName(), ise);
         }
       });
+
     }
 
     return instanceState;
@@ -75,5 +83,23 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
         .map(duration -> duration.multipliedBy(currentBackoffFactor
             .getAndAdd(backoffFactor.orElse(1))))
         .orElse(Duration.ZERO));
+  }
+
+
+  private InstanceState determineStateFromSignal(final Signal signal) {
+    final InstanceState instanceState;
+
+    switch(signal) {
+      case PRE_START:
+        instanceState = InstanceState.STARTING;
+        break;
+      case PRE_RESTART:
+        instanceState = InstanceState.RESTARTING;
+        break;
+      default:
+        instanceState = InstanceState.STOPPED;
+    }
+
+    return instanceState;
   }
 }

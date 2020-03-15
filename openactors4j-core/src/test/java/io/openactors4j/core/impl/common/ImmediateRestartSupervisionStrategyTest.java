@@ -16,29 +16,76 @@ public class ImmediateRestartSupervisionStrategyTest {
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.RESTARTING);
 
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.RESTARTING);
   }
 
+  @Test
+  public void shouldHandleActorCreationExceptionWithoutMaxRetries() {
+    final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(0);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.CREATING);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.CREATING);
+  }
 
   @Test
-  public void shouldHandleSignalProcessingExceptionWithoutMaxRetries() {
+  public void shouldHandlePreStartSignalProcessingExceptionWithoutMaxRetries() {
     final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(0);
 
     Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
         Signal.PRE_START,
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.STARTING);
 
-    Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
+    Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
+        Signal.PRE_START,
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.STARTING);
+  }
+
+  @Test
+  public void shouldHandlePreRestartSignalProcessingExceptionWithoutMaxRetries() {
+    final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(0);
+
+    Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
+        Signal.PRE_RESTART,
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.RESTARTING);
+
+    Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
+        Signal.PRE_RESTART,
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.RESTARTING);
+  }
+
+  @Test
+  public void shouldHandleActorCreationgExceptionWithoutMaxRetries() {
+    final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(0);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.CREATING);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.CREATING);
   }
 
   @Test
@@ -48,28 +95,58 @@ public class ImmediateRestartSupervisionStrategyTest {
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.RESTARTING);
 
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.STOPPED);
+        .hasValue(InstanceState.STOPPING);
   }
 
+  @Test
+  public void shouldHandleActorCreationExceptionWithtMaxRetries() {
+    final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(1);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.CREATING);
+
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.STOPPED);
+  }
 
   @Test
-  public void shouldHandleSignalProcessingExceptionWithMaxRetries() {
+  public void shouldHandlePreStartSignalProcessingExceptionWithMaxRetries() {
     final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(1);
 
     Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
         Signal.PRE_START,
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.RUNNING);
+        .hasValue(InstanceState.STARTING);
 
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.STOPPED);
+        .hasValue(InstanceState.STOPPED);
+  }
+
+  @Test
+  public void shouldHandlePreRestartSignalProcessingExceptionWithMaxRetries() {
+    final ImmediateRestartSupervisionStrategy strategy = new ImmediateRestartSupervisionStrategy(1);
+
+    Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
+        Signal.PRE_RESTART,
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.RESTARTING);
+
+    Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.STOPPED);
   }
 }

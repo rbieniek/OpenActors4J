@@ -15,9 +15,8 @@ public class TerminateSupervisionStrategyTest {
     Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.STOPPED);
+        .hasValue(InstanceState.STOPPING);
   }
-
 
   @Test
   public void shouldHandleSignalProcessingException() {
@@ -25,6 +24,14 @@ public class TerminateSupervisionStrategyTest {
         Signal.PRE_START,
         actorInstance,
         actorInstanceContext))
-        .isEqualTo(InstanceState.STOPPED);
+        .hasValue(InstanceState.STOPPING);
+  }
+
+  @Test
+  public void shouldHandlActorCreationException() {
+    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
+        actorInstance,
+        actorInstanceContext))
+        .hasValue(InstanceState.STOPPED);
   }
 }
