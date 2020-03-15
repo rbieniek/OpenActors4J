@@ -40,7 +40,7 @@ public interface ActorInstanceContext<T> {
   /**
    * Assign the actor instance to this context object and start it.
    */
-  <V extends Actor> void assignAndStart(ActorInstance<V, T> actorInstance);
+  <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance);
 
   /**
    * Submit a runnable to be executed in a threadpool provided by the actor system.
