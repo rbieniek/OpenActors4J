@@ -4,6 +4,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
+
 import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.Signal;
@@ -65,7 +66,8 @@ public abstract class ActorInstance<V extends Actor, T> {
       .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
       .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
       .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
-      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete);
+      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
+      .addState(InstanceState.STARTING, InstanceState.RESTARTING,this::restartInstance);
 
   /**
    * Move the actor instance to a new state.
@@ -125,7 +127,7 @@ public abstract class ActorInstance<V extends Actor, T> {
               });
     }, () -> {
       if (message instanceof ExtendedMessage) {
-        final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>)message;
+        final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>) message;
 
         if (extendedMessage.getExtensionData() instanceof DeathNote) {
           log.info("Actor {} received death note", name);
@@ -147,6 +149,8 @@ public abstract class ActorInstance<V extends Actor, T> {
           case DELAYED:
             transitionState(InstanceState.RUNNING);
             break;
+          case RESTARTING:
+          case RESTARTING_DELAYED:
           case STARTING:
             // No further action required
             break;
@@ -185,7 +189,7 @@ public abstract class ActorInstance<V extends Actor, T> {
     } catch (Exception e) {
       log.info("Actor {} caught exception in message processing", name, e);
 
-      transitionState(supervisionStrategy.handleProcessingException(e, this, context));
+      transitionState(supervisionStrategy.handleMessageProcessingException(e, this, context));
     } finally {
       actorContext.setCurrentSender(null);
     }
@@ -210,7 +214,7 @@ public abstract class ActorInstance<V extends Actor, T> {
       this.instance = instanceSupplier.call();
       this.instance.setupContext(this.actorContext);
 
-      if(this.instance instanceof SystemActor) {
+      if (this.instance instanceof SystemActor) {
         log.info("Enabling system actor behavior for actor {}", name);
 
         deathNoteHandler = this::systemActorDeathNoteHandler;
@@ -253,7 +257,7 @@ public abstract class ActorInstance<V extends Actor, T> {
 
         context.runAsync(this::createInstance)
             .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
-            .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
+            .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
             .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 
         resultState = null;
@@ -266,11 +270,11 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
-  private InstanceState decideStateAfterInstanceStart(final Throwable throwable) {
+  private InstanceState decideStateAfterInstanceStart(final Signal signal, final Throwable throwable) {
     InstanceState result = InstanceState.RUNNING;
 
     if (throwable != null) {
-      result = InstanceState.RESTARTING_DELAYED;
+      result = supervisionStrategy.handleSignalProcessingException(throwable, signal, this, context);
     }
 
     return result;
@@ -293,7 +297,7 @@ public abstract class ActorInstance<V extends Actor, T> {
 
     context.runAsync(this::createInstance)
         .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
-        .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
+        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
         .whenComplete((state, throwable) -> transitionState((InstanceState) state));
 
     return empty();
@@ -302,7 +306,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
     context.runAsync(() -> sendSignal(Signal.POST_STOP))
         .whenComplete((state, throwable) -> {
-          if(throwable != null) {
+          if (throwable != null) {
             log.info("Actor failed to process stop signal",
                 throwable);
           }
@@ -332,8 +336,9 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   private Optional<InstanceState> restartInstance(final InstanceState desiredState) {
     context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
-        .handle((s, t) -> decideStateAfterInstanceStart((Throwable) t))
+        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
         .whenComplete((state, throwable) -> transitionState((InstanceState) state));
     return empty();
   }
+
 }
