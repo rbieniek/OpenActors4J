@@ -43,9 +43,6 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
 
-  @Getter(AccessLevel.PUBLIC)
-  private InstanceState instanceState = InstanceState.NEW;
-
   @Getter(AccessLevel.PROTECTED)
   private V instance;
 
@@ -54,38 +51,69 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   private Consumer<Message<T>> deathNoteHandler = this::standardDeathNoteHandler;
 
-  private ActorStateTransitions stateMachine = ActorStateTransitions.newInstance()
-      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
-      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
-      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.RESTARTING, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.RESTARTING_DELAYED, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.RUNNING, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
-      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
-      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
-      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
-      .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
-      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
-      .addState(InstanceState.STARTING, InstanceState.RESTARTING,this::restartInstance);
+  private ActorInstanceStateMachine stateMachine = ActorInstanceStateMachine.newInstance()
+      .presetStateMatrix(ActorInstanceStateMachine::noShift)
+      .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
+      .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, ActorInstanceStateMachine::shift)
+//      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
+//      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
+//      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
+//      .addState(InstanceState.RESTARTING, InstanceState.STOPPED, this::stopInstance)
+//      .addState(InstanceState.RESTARTING_DELAYED, InstanceState.STOPPED, this::stopInstance)
+//      .addState(InstanceState.RUNNING, InstanceState.STOPPED, this::stopInstance)
+//      .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
+//      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
+//      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
+//      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
+//      .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
+//      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
+//      .addState(InstanceState.STARTING, InstanceState.RESTARTING,this::restartInstance)
+      .addState(InstanceState.STOPPING, InstanceState.STOPPED, ActorInstanceStateMachine::shift);
+
+  /**
+   * Handle a message which is destined for this actor:
+   *
+   * @param message the message to process;
+   */
+  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
+  protected abstract void handleMessage(final Message<T> message) throws Exception;
+
+  /**
+   * Handle signal reception
+   */
+  @SuppressWarnings( {"PMD.SignatureDeclareThrowsException", "PMD.AvoidUncheckedExceptionsInSignatures"})
+  protected abstract void sendSignal(Signal signal) throws RuntimeException;
+
+  /**
+   * Trigger the creation of the enclosed actor.
+   *
+   * Depending on startup mode, the creation will start immediately or will be delayed until the
+   * reception of the first message
+   */
+  public void triggerActorCreation() {
+    if(startupMode == StartupMode.IMMEDIATE) {
+      transitionState(InstanceState.CREATING);
+    } else {
+      transitionState(InstanceState.CREATE_DELAYED);
+    }
+  }
 
   /**
    * Move the actor instance to a new state.
    */
   public void transitionState(final InstanceState desiredState) {
-    if (instanceState != desiredState) {
-      log.info("Transition actor {} from state {} to new state {}",
-          name,
-          instanceState,
-          desiredState);
-      stateMachine.lookup(instanceState, desiredState)
-          .orElseThrow(() -> new IllegalStateException("Cannot transition from state "
-              + instanceState
-              + " to state "
-              + desiredState))
-          .apply(desiredState)
-          .ifPresent(state -> instanceState = state);
-    }
+    stateMachine.transitionState(desiredState, name);
+  }
+
+  public void parentalLifecycleEvent(final ParentLifecycleEvent lifecycleEvent) {
+    childActors.values()
+        .forEach(actorInstance -> actorInstance.parentalLifecycleEvent(lifecycleEvent));
+
+    stateMachine.parentalLifecycleEvent(lifecycleEvent);
+  }
+
+  public InstanceState getInstanceState() {
+    return stateMachine.getInstanceState();
   }
 
   /**
@@ -102,6 +130,9 @@ public abstract class ActorInstance<V extends Actor, T> {
    * Route the incoming message according to its path:
    *
    * <ul>
+   *   <li>If the actor state machine permits permits message reception,
+   *   the message is processed by the subsequent steps. Otherwise, it is passed in to the
+   *   {@link ActorInstanceContext#undeliverableMessage(Message)} method</li>
    * <li>if the target routing slip has q child path, route the message to the child actor with the
    * name denoted by next path part. If no child actor with a matching name can be found, send the
    * message to the systems unreachable handler</li>
@@ -117,50 +148,46 @@ public abstract class ActorInstance<V extends Actor, T> {
   public void routeMessage(final Message<T> message) {
     final Optional<String> currentPart = message.getTarget().nextPathPart();
 
-    currentPart.ifPresentOrElse(pathPath -> {
-      ofNullable(childActors.get(pathPath))
-          .ifPresentOrElse(child -> child.routeMessage(message),
-              () -> {
-                log.info("Actor {} undeliverable message to {}", name, pathPath);
+    if (stateMachine.messageReceptionEnabled()) {
+      currentPart.ifPresentOrElse(pathPath -> {
+        ofNullable(childActors.get(pathPath))
+            .ifPresentOrElse(child -> child.routeMessage(message),
+                () -> {
+                  log.info("Actor {} undeliverable message to {}", name, pathPath);
 
-                context.undeliverableMessage(message);
-              });
-    }, () -> {
-      if (message instanceof ExtendedMessage) {
-        final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>) message;
+                  context.undeliverableMessage(message);
+                });
+      }, () -> {
+        if (message instanceof ExtendedMessage) {
+          final ExtendedMessage<T, ?> extendedMessage = (ExtendedMessage<T, ?>) message;
 
-        if (extendedMessage.getExtensionData() instanceof DeathNote) {
-          log.info("Actor {} received death note", name);
+          if (extendedMessage.getExtensionData() instanceof DeathNote) {
+            log.info("Actor {} received death note", name);
 
-          deathNoteHandler.accept(message);
+            deathNoteHandler.accept(message);
+          } else {
+            log.info("Actor {} received unhandleable extension data {}", name,
+                extendedMessage.getExtensionData());
+
+            context.undeliverableMessage(message);
+          }
         } else {
-          log.info("Actor {} received unhandleable extension data {}", name,
-              extendedMessage.getExtensionData());
+          context.enqueueMessage(message);
 
-          context.undeliverableMessage(message);
+          switch (stateMachine.getInstanceState()) {
+            case RUNNING:
+              context.scheduleMessageProcessing();
+              break;
+            case CREATE_DELAYED:
+              transitionState(InstanceState.CREATING);
+              break;
+            default:
+          }
         }
-      } else {
-        context.enqueueMessage(message);
-
-        switch (instanceState) {
-          case RUNNING:
-            context.scheduleMessageProcessing();
-            break;
-          case DELAYED:
-            transitionState(InstanceState.RUNNING);
-            break;
-          case RESTARTING:
-          case RESTARTING_DELAYED:
-          case STARTING:
-            // No further action required
-            break;
-          default:
-            throw new IllegalStateException("Cannot handle current instance state "
-                + instanceState);
-        }
-
-      }
-    });
+      });
+    } else {
+      context.undeliverableMessage(message);
+    }
   }
 
   private void standardDeathNoteHandler(final Message<T> message) {
@@ -197,19 +224,11 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   /**
-   * Handle a message which is destined for this actor:
-   *
-   * @param message the message to process;
-   */
-  @SuppressWarnings("PMD.SignatureDeclareThrowsException")
-  protected abstract void handleMessage(final Message<T> message) throws Exception;
-
-  /**
    * Create the actor implementation instance:
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   @SneakyThrows
-  private void createInstance() {
+  private void createEnclosedActor() {
     try {
       this.instance = instanceSupplier.call();
       this.instance.setupContext(this.actorContext);
@@ -227,47 +246,40 @@ public abstract class ActorInstance<V extends Actor, T> {
   }
 
   /**
-   * Handle signal reception
-   */
-  @SuppressWarnings( {"PMD.SignatureDeclareThrowsException", "PMD.AvoidUncheckedExceptionsInSignatures"})
-  protected abstract void sendSignal(Signal signal) throws RuntimeException;
-
-  /**
-   * Attempt to start a new actor.
-   *
-   * <p>
-   * Depending on the start mode, the instance creation is started
-   * immediately or delayed until the arrvial of the first message:
+   * Attempt to create the enclosed actor actor.
    *
    * @param desiredState the desired state, ignored in this case
-   * @return
+   * @return the target state to move the state machine to
    */
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
-  private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
+  private Optional<InstanceState> createNewInstance(final InstanceState desiredState) {
     final InstanceState resultState;
 
     this.actorContext = new ActorContextImpl(context);
 
-    switch (startupMode) {
-      case DELAYED:
-        resultState = InstanceState.DELAYED;
-        break;
-      case IMMEDIATE:
-        instanceState = InstanceState.STARTING;
+    context.runAsync(this::createEnclosedActor).whenComplete((result, throwable) -> {
+      if(throwable != null) {
+        log.info("Failed to create the embedded actor for actor instance {}", name, throwable);
+        transitionState(InstanceState.CREATE_FAILED);
+      } else {
+        transitionState(InstanceState.STARTING);
+      }
+    });
 
-        context.runAsync(this::createInstance)
-            .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
-            .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
-            .whenComplete((state, throwable) -> transitionState((InstanceState) state));
-
-        resultState = null;
-        break;
-      default:
-        throw new IllegalStateException("Cannot handle startup mode " + startupMode);
-    }
-
-    return ofNullable(resultState);
+    return empty();
   }
+
+  private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
+    instanceState = InstanceState.STARTING;
+
+    context.runAsync(this::createEnclosedActor)
+        .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
+        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
+        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
+
+    return empty();
+  }
+
 
   @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
   private InstanceState decideStateAfterInstanceStart(final Signal signal, final Throwable throwable) {
@@ -290,17 +302,6 @@ public abstract class ActorInstance<V extends Actor, T> {
     }
 
     return object;
-  }
-
-  private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
-    instanceState = InstanceState.STARTING;
-
-    context.runAsync(this::createInstance)
-        .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
-        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
-        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
-
-    return empty();
   }
 
   private Optional<InstanceState> stopInstance(final InstanceState desiredState) {

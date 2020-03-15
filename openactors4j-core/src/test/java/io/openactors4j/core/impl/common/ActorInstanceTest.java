@@ -69,7 +69,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -98,7 +98,7 @@ public class ActorInstanceTest {
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -118,7 +118,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE,
         Signal.PRE_START);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -139,7 +139,7 @@ public class ActorInstanceTest {
         Signal.PRE_START);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -171,7 +171,7 @@ public class ActorInstanceTest {
         StartupMode.DELAYED);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.DELAYED);
@@ -200,7 +200,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -230,7 +230,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -261,7 +261,7 @@ public class ActorInstanceTest {
         Signal.POST_STOP);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -291,7 +291,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -323,7 +323,7 @@ public class ActorInstanceTest {
         Signal.PRE_START);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -354,7 +354,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -385,7 +385,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -415,7 +415,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -447,7 +447,7 @@ public class ActorInstanceTest {
         Signal.PRE_START);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
 
     Thread.sleep(100);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
@@ -478,7 +478,7 @@ public class ActorInstanceTest {
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndStart(actorInstance);
+    actorInstanceContext.assignAndCreate(actorInstance);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Thread.sleep(100);
@@ -565,10 +565,10 @@ public class ActorInstanceTest {
     }
 
     @Override
-    public <V extends Actor> void assignAndStart(ActorInstance<V, T> actorInstance) {
+    public <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance) {
       this.actorInstance = actorInstance;
 
-      actorInstance.transitionState(InstanceState.RUNNING);
+      actorInstance.triggerActorCreation();
     }
 
     @Override
