@@ -84,8 +84,8 @@ Description of lifecycle states:
 
 * _NEW_: Actor instance created
 * _CREATE_DELAYED_: Delay actor creation until first message arrived
-*  _CREATE_: Attempt to create the mananged actor
-* _CREATE_FAILED_: Attempt to create the mananged actor failed
+*  _CREATE_: Attempt to CREATING the mananged actor
+* _CREATE_FAILED_: Attempt to CREATING the mananged actor failed
 * _STARTING_: Attempt to send _PRE_START_ signal to the mananged actor
 * _START_FAILED_: Attempt to send _PRE_START_ signal to the mananged actor failed, enclosed actor raised an exception
 * _RUNNING_: Ready to deliver messages to the enclosed actor
@@ -166,21 +166,21 @@ The following state diagram applies to the finite state machine
 [*] --> New : Actor system
 
 New --> CREATE_DELAYED : Actor instance
-New --> CREATE : Actor instance
+New --> CREATING : Actor instance
 New : Actor instance created
 
-CREATE_DELAYED -> CREATE : Actor instance
+CREATE_DELAYED -> CREATING : Actor instance
 CREATE_DELAYED --> STOPPED : Parental lifecycle signal: STOPPED
 CREATE_DELAYED : Delay actor creation until first message arrived
 
-CREATE --> CREATE_FAILED : Actor
-CREATE --> STARTING : Actor
-CREATE : Attempt to create the mananged actor
+CREATING --> CREATE_FAILED : Actor
+CREATING --> STARTING : Actor
+CREATING : Attempt to CREATING the mananged actor
 
-CREATE_FAILED --> CREATE : Supervision strategy
+CREATE_FAILED --> CREATING : Supervision strategy
 CREATE_FAILED --> STOPPED : Supervision strategy
 CREATE_FAILED --> STOPPED : Parental lifecycle signal: STOPPED
-CREATE_FAILED : Attempt to create the mananged actor failed
+CREATE_FAILED : Attempt to CREATING the mananged actor failed
 note left of CREATE_FAILED: Strategy outcome:\nCREATE\STOPPED\nCREATE_FAILED
 
 STARTING --> START_FAILED : Actor
