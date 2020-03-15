@@ -28,7 +28,7 @@ The project consists of a couple of modules:
 * The adressing scheme for actors is explained here <<adressing.adoc#,Actor adressing>>
 * For information about actor relationship and supervision, see <<hierarchy.adoc#,Hierachy>>
 * The lifecycle of an actor is described here <<lifecycle.adoc#,Lifecycle>>
-* The conecpt of actor mailboxes is explained here <<mailbox.adoc#,Mailboxes>>
+* The concept of actor mailboxes is explained here <<mailbox.adoc#,Mailboxes>>
 
 [bibliography]
 == References

@@ -70,6 +70,7 @@
         <java.lib.jruby>9.2.9.0</java.lib.jruby>
         <java.lib.assertj.core>3.14.0</java.lib.assertj.core>
         <java.lib.mockito.core>3.3.3</java.lib.mockito.core>
+        <java.lib.plantuml>1.2020.2</java.lib.plantuml>
     </properties>
 
     <modules>
@@ -314,6 +315,11 @@
                             <groupId>org.jruby</groupId>
                             <artifactId>jruby-complete</artifactId>
                             <version>${java.lib.jruby}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.sourceforge.plantuml</groupId>
+                            <artifactId>plantuml</artifactId>
+                            <version>${java.lib.plantuml}</version>
                         </dependency>
                     </dependencies>
                     <executions>

@@ -1,0 +1,228 @@
+= Actor instance lifecycle
+
+An actor instance goes through a lifecycle which handles various aspects of managing the enclosed actor instance
+
+* Starting, Restarting and Stopping the instance instance
+* Starting, Restarting and Stopping the enclosed actor
+* Issuing actor lifecycle signals to the enclosed actor
+* Handling exceptions raised by the enclosed actor at various points
+** Creating the enclosed actor
+** Signal processing by the enclosed actor
+** Message processing by the enclosed actor
+
+== Lifecycle states
+
+The actor instance lifecycle states are:
+
+.Table lifecycle states
+|===
+| State name | Message processing enabled | Actor created | Supervison strategy action
+
+| _NEW_
+| No
+| No
+| None
+
+| _CREATE_DELAYED_
+| No
+| No
+| None
+
+| _CREATE_
+| No
+| No
+| None
+
+| _CREATE_FAILED_
+| No
+| No
+| Determine subsequent state based on strategy
+
+| _STARTING_
+| No
+| Yes
+| None
+
+| _START_FAILED_
+| No
+| Yes
+| Determine subsequent state based on strategy
+
+| _RUNNING_
+| Yes
+| Yes
+| None
+
+| _PROCESSING_FAILED_
+| No
+| Yes
+| Determine subsequent state based on strategy
+
+| _RESTARTING_
+| No
+| Yes
+| None
+
+| _RESTART_FAILED_
+| No
+| Yes
+| None
+
+| _STOPPING_
+| No
+| Yes
+| None
+
+| _STOPPED_
+| No
+| Yes
+| None
+
+|===
+
+Description of lifecycle states:
+
+* _NEW_: Actor instance created
+* _CREATE_DELAYED_: Delay actor creation until first message arrived
+*  _CREATE_: Attempt to create the mananged actor
+* _CREATE_FAILED_: Attempt to create the mananged actor failed
+* _STARTING_: Attempt to send _PRE_START_ signal to the mananged actor
+* _START_FAILED_: Attempt to send _PRE_START_ signal to the mananged actor failed, enclosed actor raised an exception
+* _RUNNING_: Ready to deliver messages to the enclosed actor
+* _PROCESSING_FAILED:_ Enclosed actor raised an exception while processing the message
+* _RESTARTING_: Attempt to send _PRE_RESTART_ signal to the mananged actor
+* _RESTARTING_FAILED_: Attempt to send _PRE_RESTART_ signal to the mananged actor failed, enclosed actor
+raised an exception
+* _STOPPING_: Attempt to send _POST_STOP_ signal to the mananged actor
+* _STOPPED_: Terminal state, the actor instance is no longer operational and will be removed from the actor system
+
+== Parent lifecycle signals
+
+As stated in the <<actor-instance#actor-instance-relationship, Actor instance relationship>> section, the actor
+instances form a tree relationship from parent to child instances
+
+Consequently, any actor lifecycle signal needs to travel from parent instances to child instances as well.
+
+The following lifecycle signals are passed from the parent to any child:
+
+* STOPPING
+* RESTARTING
+
+These signals need to be passed to fulfill the overall contract that:
+
+* Stopping the parent actor needs to stop any child actor
+* Restarting a parent actor needs to restart any child actor
+
+The following diagram shows the contractual behavior between parent and child instances and enclosed actors:
+
+[plantuml]
+....
+@startuml
+object ParentInstance
+object ChildInstance1
+object ChildInstance2
+object ChildInstance3
+object ChildInstance4
+object ChildActor1
+object ChildActor2
+object ChildActor3
+object ChildActor4
+
+ParentInstance o-- ChildInstance1
+ParentInstance ..|> ChildInstance1 : lifecycle signal
+ParentInstance o-- ChildInstance2
+ParentInstance ..|> ChildInstance2 : lifecycle signal
+
+ChildInstance1 *-- ChildActor1
+ChildInstance1 ..|> ChildActor1 : lifecycle signal
+ChildInstance2 *-- ChildActor2
+ChildInstance2 ..|> ChildActor2 : lifecycle signal
+ChildInstance2 o-- ChildInstance3
+ChildInstance2 ..|> ChildInstance3 : lifecycle signal
+ChildInstance2 o-- ChildInstance4
+ChildInstance2 ..|> ChildInstance4 : lifecycle signal
+
+ChildInstance3 *-- ChildActor3
+ChildInstance3 ..|> ChildActor3 : lifecycle signal
+ChildInstance4 *-- ChildActor4
+ChildInstance4 ..|> ChildActor4 : lifecycle signal
+@enduml
+....
+
+== Finite state machine
+
+The actor instance executes a finite state machine based on the lifecycle states and transitions caused by
+
+* the actor instance itself
+* the supervision strategy defined for the enclosed actor
+* Reception of a terminate actor message
+* Lifecycle state transitions sent by the parent actor
+
+The following state diagram applies to the finite state machine
+
+[plantuml]
+....
+@startuml
+[*] --> New : Actor system
+
+New --> CREATE_DELAYED : Actor instance
+New --> CREATE : Actor instance
+New : Actor instance created
+
+CREATE_DELAYED -> CREATE : Actor instance
+CREATE_DELAYED --> STOPPED : Parental lifecycle signal: STOPPED
+CREATE_DELAYED : Delay actor creation until first message arrived
+
+CREATE --> CREATE_FAILED : Actor
+CREATE --> STARTING : Actor
+CREATE : Attempt to create the mananged actor
+
+CREATE_FAILED --> CREATE : Supervision strategy
+CREATE_FAILED --> STOPPED : Supervision strategy
+CREATE_FAILED --> STOPPED : Parental lifecycle signal: STOPPED
+CREATE_FAILED : Attempt to create the mananged actor failed
+note left of CREATE_FAILED: Strategy outcome:\nCREATE\STOPPED\nCREATE_FAILED
+
+STARTING --> START_FAILED : Actor
+STARTING --> RUNNING : Actor
+STARTING --> STOPPING : Parental lifecycle signal: STOPPED
+STARTING : Attempt to send _PRE_START_ signal to the mananged actor
+
+START_FAILED --> STARTING : Supervision strategy
+START_FAILED --> STOPPING : Supervision strategy
+START_FAILED --> STOPPING : Parental lifecycle signal: STOPPED
+START_FAILED : Attempt to send _PRE_START_ signal to the mananged actor failed
+note left of START_FAILED: Strategy outcome:\nSTARTING\nSTOPPING\nSTART_FAILED
+
+RUNNING --> STOPPING : Message processing
+RUNNING --> PROCESSING_FAILED : Actor
+RUNNING --> STOPPING : Parental lifecycle signal: STOPPED
+RUNNING --> RESTARTING : Parental lifecycle signal: RESTARTING
+RUNNING : Ready to deliver messages to the enclosed actor
+
+PROCESSING_FAILED --> RESTARTING : Supervision strategy
+PROCESSING_FAILED --> STOPPING : Supervision strategy
+PROCESSING_FAILED --> STOPPING : Parental lifecycle signal: STOPPED
+PROCESSING_FAILED : Enclosed actor raised an exception while processing the message
+note right of PROCESSING_FAILED: Strategy outcome:\nRESTARTING\nSTOPPING
+
+RESTARTING --> RESTARTING_FAILED : Actor
+RESTARTING --> RUNNING : Actor
+RESTARTING --> STOPPING : Parental lifecycle signal: STOPPED
+RESTARTING : Attempt to send _PRE_RESTART_ signal to the mananged actor
+
+RESTARTING_FAILED --> RESTARTING  : Supervision strategy
+RESTARTING_FAILED --> STOPPING : Supervision strategy
+RESTARTING_FAILED --> STOPPING : Parental lifecycle signal: STOPPED
+RESTARTING_FAILED : Attempt to send _PRE_RESTART_ signal to the mananged actor failed
+note right of RESTARTING_FAILED: Strategy outcome:\nRESTARTING\nSTOPPING\nRESTARTING_FAILED
+
+STOPPING --> STOPPED : Actor instance
+STOPPING : Attempt to send _POST_STOP_ signal to the mananged actor
+note left of STOPPING: Exceptions raised in actor signal processing are ignored
+
+STOPPED --> [*] : Actor instance
+STOPPED : actor instance is no longer operational
+
+@enduml
+....

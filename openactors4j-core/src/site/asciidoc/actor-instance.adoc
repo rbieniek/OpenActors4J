@@ -1,0 +1,75 @@
+= Actor instance
+
+The actor instance is an internal runtime entity managed by the actor system. It encapsulates the actor
+implementation in a generic way and manages
+
+* The actor lifecycle
+* Message delivery
+
+== Actor instance types
+
+The actor instance class is a generic base class for managing the overall relationship between an actor and the
+enclosing actor system.
+
+Given that actors come in two flavors
+
+* untyped actors
+* type-aware actors
+
+there is the need for two different actor instance subclasses handling the different API styles.
+
+The following class diagramm shows the relationships
+
+[plantuml]
+....
+@startuml
+ActorInstance <|-- UntypedActorInstance
+ActorInstance <|-- TypedActorInstance
+UntypedActorInstance *-- UntypedActor
+TypedActorInstance *-- TypedActor
+@enduml
+....
+
+== Actor instance relationship[[actor-instance-relationship]]
+
+As noted before, actors form relationships organized as a single rooted tree. Implementation-wise, the actors do
+not form the tree. instead, it is formed by the actor instances, which implicitly yields the actor tree relationship
+
+This diagram shows the tree relationship formed by actor instances and the enclosed actors
+
+[plantuml]
+....
+@startuml
+object ParentInstance
+object ChildInstance1
+object ChildInstance2
+object ChildInstance3
+object ChildInstance4
+object ChildActor1
+object ChildActor2
+object ChildActor3
+object ChildActor4
+
+ParentInstance o-- ChildInstance1
+ParentInstance o-- ChildInstance2
+
+ChildInstance1 *-- ChildActor1
+ChildInstance2 *-- ChildActor2
+ChildInstance2 o-- ChildInstance3
+ChildInstance2 o-- ChildInstance4
+
+ChildInstance3 *-- ChildActor3
+ChildInstance4 *-- ChildActor4
+@enduml
+....
+
+== Actor instance lifecycle
+
+An actor instance itself has a lifecycle.
+
+The lifecycle of an actor instance contains:
+
+* Starting, restarting and stopping an actor instance
+* Handling of exceptions raised by the managed actor instance
+
+It is explained in detail here <<actor-instance-lifecycle#, Actor instance lifecycle>>
