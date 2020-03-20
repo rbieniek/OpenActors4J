@@ -55,7 +55,11 @@ public abstract class ActorInstance<V extends Actor, T> {
       .presetStateMatrix(ActorInstanceStateMachine::noShift)
       .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
       .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, ActorInstanceStateMachine::shift)
-//      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
+      .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
+      .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
+      .addState(InstanceState.STARTING, InstanceState.RUNNING, ActorInstanceStateMachine::shift)
+      .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
+      //      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
 //      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
 //      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
 //      .addState(InstanceState.RESTARTING, InstanceState.STOPPED, this::stopInstance)
@@ -82,7 +86,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    * Handle signal reception
    */
   @SuppressWarnings( {"PMD.SignatureDeclareThrowsException", "PMD.AvoidUncheckedExceptionsInSignatures"})
-  protected abstract void sendSignal(Signal signal) throws RuntimeException;
+  protected abstract void sendSignal(Signal signal) throws ActorInstanceSignalingFailedException;
 
   /**
    * Trigger the creation of the enclosed actor.
@@ -227,7 +231,6 @@ public abstract class ActorInstance<V extends Actor, T> {
    * Create the actor implementation instance:
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
-  @SneakyThrows
   private void createEnclosedActor() {
     try {
       this.instance = instanceSupplier.call();
@@ -241,7 +244,7 @@ public abstract class ActorInstance<V extends Actor, T> {
     } catch (Exception e) {
       log.info("Caught exception on actor {} instance creation", name, e);
 
-      throw e;
+      throw new ActorInstanceCreationFailedException(e);
     }
   }
 
@@ -253,20 +256,52 @@ public abstract class ActorInstance<V extends Actor, T> {
    */
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private Optional<InstanceState> createNewInstance(final InstanceState desiredState) {
-    final InstanceState resultState;
-
     this.actorContext = new ActorContextImpl(context);
 
-    context.runAsync(this::createEnclosedActor).whenComplete((result, throwable) -> {
-      if(throwable != null) {
-        log.info("Failed to create the embedded actor for actor instance {}", name, throwable);
-        transitionState(InstanceState.CREATE_FAILED);
-      } else {
-        transitionState(InstanceState.STARTING);
-      }
-    });
+    context.runAsync(this::createEnclosedActor)
+        .whenComplete((result, throwable) ->transitionConditionallyOnException((Throwable)throwable,
+            InstanceState.STARTING,
+            InstanceState.CREATE_FAILED)
+    );
 
     return empty();
+  }
+
+  private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
+    context.runAsync(() -> sendSignal(Signal.PRE_START))
+        .whenComplete((result, throwable) ->transitionConditionallyOnException((Throwable)throwable,
+            InstanceState.RUNNING,
+            InstanceState.START_FAILED);
+
+    return empty();
+  }
+
+  private Optional<InstanceState> executeSupervisionStrategy(final InstanceState desiredState) {
+    switch (desiredState) {
+      case CREATE_FAILED:
+        break;
+      case START_FAILED:
+        break;
+      case PROCESSING_FAILED:
+        break;
+      default:
+          log.info("cannot execute supervision strategy on transition to target state {}", desiredState);
+          throw new IllegalStateException("No supervision strategy for transition to state "
+              + desiredState);
+    }
+
+    return Optional.empty();
+  }
+
+  private InstanceState transitionConditionallyOnException(final Throwable throwable,
+                                                           final InstanceState onSuccessState,
+                                                           final InstanceState onExceptionState) {
+    return Optional.ofNullable(throwable).map(throwable1 -> {
+      log.info("Actor name {} caught exception while transition from state {}",
+          name, stateMachine.getInstanceState(), throwable);
+
+      return onExceptionState;
+    }).orElse(onExceptionState);
   }
 
   private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
