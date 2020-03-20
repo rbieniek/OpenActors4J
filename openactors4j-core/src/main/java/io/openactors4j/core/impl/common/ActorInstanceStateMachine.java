@@ -18,6 +18,18 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 public class ActorInstanceStateMachine {
   private static Map<InstanceState, Boolean> receptionEnabled = new ConcurrentHashMap<>();
 
+  private Map<ImmutablePair<InstanceState, InstanceState>, StateTransitionFunction> transitionMap = new ConcurrentHashMap<>();
+
+  public static ActorInstanceStateMachine newInstance() {
+    return new ActorInstanceStateMachine();
+  }
+
+  @FunctionalInterface
+  public interface StateTransitionFunction extends Function<InstanceState,
+      Optional<InstanceState>> {
+
+  }
+
   static {
     receptionEnabled.put(InstanceState.NEW, false);
     receptionEnabled.put(InstanceState.CREATING, true);
@@ -35,22 +47,19 @@ public class ActorInstanceStateMachine {
     receptionEnabled.put(InstanceState.STOPPED, false);
   }
 
-  private Map<ImmutablePair<InstanceState, InstanceState>, Function<InstanceState, Optional<InstanceState>>> transitionMap = new ConcurrentHashMap<>();
-
-  public static ActorInstanceStateMachine newInstance() {
-    return new ActorInstanceStateMachine();
-  }
-
   @Getter
   private InstanceState instanceState = InstanceState.NEW;
 
-  public ActorInstanceStateMachine addState(final InstanceState startState, final InstanceState destinationState, final Function<InstanceState, Optional<InstanceState>> operator) {
+  public ActorInstanceStateMachine addState(final InstanceState startState,
+                                            final InstanceState destinationState,
+                                            final StateTransitionFunction operator) {
     transitionMap.put(ImmutablePair.of(startState, destinationState), operator);
 
     return this;
   }
 
-  public Optional<Function<InstanceState, Optional<InstanceState>>> lookup(final InstanceState startState, final InstanceState destinationState) {
+  public Optional<StateTransitionFunction> lookup(final InstanceState startState,
+                                                  final InstanceState destinationState) {
     return Optional.ofNullable(transitionMap.get(ImmutablePair.of(startState, destinationState)));
   }
 
@@ -70,9 +79,10 @@ public class ActorInstanceStateMachine {
     }
   }
 
-  public ActorInstanceStateMachine presetStateMatrix(final Function<InstanceState, Optional<InstanceState>> function) {
+  public ActorInstanceStateMachine presetStateMatrix(final StateTransitionFunction function) {
     EnumSet.allOf(InstanceState.class).forEach(key -> {
-      EnumSet.allOf(InstanceState.class).forEach(value -> transitionMap.put(ImmutablePair.of(key, value), function));
+      EnumSet.allOf(InstanceState.class)
+          .forEach(value -> transitionMap.put(ImmutablePair.of(key, value), function));
     });
 
     return this;
