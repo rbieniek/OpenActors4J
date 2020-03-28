@@ -34,43 +34,45 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <openactors4j.version>0.0.1-SNAPSHOT</openactors4j.version>
-        <maven.plugin.compiler>3.8.1</maven.plugin.compiler>
-        <maven.plugin.jar>3.2.0</maven.plugin.jar>
-        <maven.plugin.surefire>3.0.0-M3</maven.plugin.surefire>
-        <maven.plugin.site>3.8.2</maven.plugin.site>
-        <maven.plugin.surefire-report>3.0.0-M3</maven.plugin.surefire-report>
-        <maven.plugin.antrun>1.8</maven.plugin.antrun>
-        <maven.plugin.toolchain>3.0.0</maven.plugin.toolchain>
-        <maven.plugin.project-info-report>3.0.0</maven.plugin.project-info-report>
-        <maven.plugin.jxr>3.0.0</maven.plugin.jxr>
-        <maven.plugin.javadoc>3.1.1</maven.plugin.javadoc>
-        <maven.plugin.pmd>3.12.0</maven.plugin.pmd>
-        <maven.plugin.checkstyle>3.1.0</maven.plugin.checkstyle>
-        <maven.plugin.jdeps>3.1.2</maven.plugin.jdeps>
-        <maven.plugin.assembly>3.2.0</maven.plugin.assembly>
-        <maven.plugin.resources>3.1.0</maven.plugin.resources>
-        <mave.plugin.lombok>1.18.10.0</mave.plugin.lombok>
-        <maven.plugin.spotbugs>3.1.12.2</maven.plugin.spotbugs>
+
         <maven.plugin.asciidoctor>2.0.0-RC.1</maven.plugin.asciidoctor>
+        <maven.plugin.assembly>3.2.0</maven.plugin.assembly>
+        <maven.plugin.compiler>3.8.1</maven.plugin.compiler>
+        <maven.plugin.antrun>1.8</maven.plugin.antrun>
+        <maven.plugin.checkstyle>3.1.1</maven.plugin.checkstyle>
+        <maven.plugin.jar>3.2.0</maven.plugin.jar>
         <maven.plugin.jacoco>0.8.5</maven.plugin.jacoco>
-        <java.lib.lombok>1.18.10</java.lib.lombok>
-        <java.lib.mapstruct>1.3.1.Final</java.lib.mapstruct>
-        <java.lib.micrometer>1.3.2</java.lib.micrometer>
-        <java.lib.slf4j>1.7.29</java.lib.slf4j>
+        <maven.plugin.javadoc>3.2.0</maven.plugin.javadoc>
+        <maven.plugin.jdeps>3.1.2</maven.plugin.jdeps>
+        <maven.plugin.jxr>3.0.0</maven.plugin.jxr>
+        <mave.plugin.lombok>1.18.10.0</mave.plugin.lombok>
+        <maven.plugin.pmd>3.13.0</maven.plugin.pmd>
+        <maven.plugin.project-info-report>3.0.0</maven.plugin.project-info-report>
+        <maven.plugin.resources>3.1.0</maven.plugin.resources>
+        <maven.plugin.site>3.9.0</maven.plugin.site>
+        <maven.plugin.spotbugs>4.0.0</maven.plugin.spotbugs>
+        <maven.plugin.surefire>3.0.0-M4</maven.plugin.surefire>
+        <maven.plugin.surefire-report>3.0.0-M4</maven.plugin.surefire-report>
+        <maven.plugin.toolchain>3.0.0</maven.plugin.toolchain>
+
+        <java.lib.asciidoctorj>2.2.0</java.lib.asciidoctorj>
+        <java.lib.asciidoctorj.diagram>2.0.1</java.lib.asciidoctorj.diagram>
+        <java.lib.assertj.core>3.15.0</java.lib.assertj.core>
+        <java.lib.checkstyle>8.30</java.lib.checkstyle>
         <java.lib.commons.lang>3.9</java.lib.commons.lang>
-        <java.lib.spotbugs>4.0.0-beta4</java.lib.spotbugs>
+        <java.lib.jruby>9.2.11.1</java.lib.jruby>
+        <java.lib.junit.bom>5.6.1</java.lib.junit.bom>
+        <java.lib.lombok>1.18.12</java.lib.lombok>
+        <java.lib.mapstruct>1.3.1.Final</java.lib.mapstruct>
+        <java.lib.micrometer>1.4.0</java.lib.micrometer>
+        <java.lib.mockito.core>3.3.3</java.lib.mockito.core>
+        <java.lib.opentracing>0.33.0</java.lib.opentracing>
+        <java.lib.plantuml>1.2020.2</java.lib.plantuml>
+        <java.lib.pmd>6.22.0</java.lib.pmd>
+        <java.lib.slf4j>1.7.30</java.lib.slf4j>
+        <java.lib.spotbugs>4.0.1</java.lib.spotbugs>
         <java.lib.spotbugs.contrib>7.4.7</java.lib.spotbugs.contrib>
         <java.lib.spotbugs.security>1.10.1</java.lib.spotbugs.security>
-        <java.lib.checkstyle>8.29</java.lib.checkstyle>
-        <java.lib.pmd>6.21.0</java.lib.pmd>
-        <java.lib.opentracing>0.33.0</java.lib.opentracing>
-        <java.lib.junit.bom>5.5.2</java.lib.junit.bom>
-        <java.lib.asciidoctorj>2.2.0</java.lib.asciidoctorj>
-        <java.lib.asciidoctorj.diagram>2.0.0</java.lib.asciidoctorj.diagram>
-        <java.lib.jruby>9.2.9.0</java.lib.jruby>
-        <java.lib.assertj.core>3.14.0</java.lib.assertj.core>
-        <java.lib.mockito.core>3.3.3</java.lib.mockito.core>
-        <java.lib.plantuml>1.2020.2</java.lib.plantuml>
     </properties>
 
     <modules>
@@ -297,6 +299,11 @@
                     </configuration>
                     <dependencies>
                         <dependency>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-site-plugin</artifactId>
+                            <version>${maven.plugin.site}</version>
+                        </dependency>
+                        <dependency>
                             <groupId>org.asciidoctor</groupId>
                             <artifactId>asciidoctor-maven-plugin</artifactId>
                             <version>${maven.plugin.asciidoctor}</version>
@@ -394,6 +401,11 @@
                         <dependency>
                             <groupId>net.sourceforge.pmd</groupId>
                             <artifactId>pmd-java</artifactId>
+                            <version>${java.lib.pmd}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-java8</artifactId>
                             <version>${java.lib.pmd}</version>
                         </dependency>
                         <dependency>
