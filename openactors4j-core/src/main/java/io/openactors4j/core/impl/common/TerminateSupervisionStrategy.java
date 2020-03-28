@@ -6,26 +6,25 @@ import java.util.Optional;
 
 public class TerminateSupervisionStrategy implements SupervisionStrategyInternal {
   @Override
-  public Optional<InstanceState> handleMessageProcessingException(final Exception processingException,
-                                                                 final ActorInstance actorInstance,
+  public void handleMessageProcessingException(final Exception processingException,
+                                                                 final ActorInstanceStateTransition transition,
                                                                  final ActorInstanceContext context) {
-
-    return Optional.of(InstanceState.STOPPING);
+    transition.equals(InstanceState.STOPPING);
   }
 
   @Override
-  public Optional<InstanceState> handleActorCreationException(final Throwable signalThrowable,
-                                                              final ActorInstance actorInstance,
+  public void handleActorCreationException(final Throwable signalThrowable,
+                                                              final ActorInstanceStateTransition transition,
                                                               final ActorInstanceContext context) {
-    return Optional.of(InstanceState.STOPPED);
+    transition.equals(InstanceState.STOPPING);
   }
 
   @Override
-  public Optional<InstanceState> handleSignalProcessingException(final Throwable signalThrowable,
+  public void handleSignalProcessingException(final Throwable signalThrowable,
                                                        final Signal signal,
-                                                       final ActorInstance actorInstance,
+                                                                 final ActorInstanceStateTransition transition,
                                                        final ActorInstanceContext context) {
-    return Optional.of(InstanceState.STOPPING);
+    transition.equals(InstanceState.STOPPING);
   }
 
 }

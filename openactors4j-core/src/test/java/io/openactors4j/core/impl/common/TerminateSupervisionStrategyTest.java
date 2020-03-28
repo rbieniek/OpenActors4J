@@ -7,31 +7,42 @@ import org.mockito.Mockito;
 
 public class TerminateSupervisionStrategyTest {
   private final TerminateSupervisionStrategy strategy = new TerminateSupervisionStrategy();
-  private final ActorInstance actorInstance = Mockito.mock(ActorInstance.class);
   private final ActorInstanceContext actorInstanceContext = Mockito.mock(ActorInstanceContext.class);
 
   @Test
   public void shouldHandleMessageProcessingException() {
-    Assertions.assertThat(strategy.handleMessageProcessingException(new Exception(),
-        actorInstance,
-        actorInstanceContext))
-        .hasValue(InstanceState.STOPPING);
+    final ActorInstanceStateTransition transition = Mockito.mock(ActorInstanceStateTransition.class);
+
+    strategy.handleMessageProcessingException(new Exception(),
+        transition,
+        actorInstanceContext);
+
+    Mockito.verify(transition)
+        .transitionState(Mockito.any(InstanceState.class));
   }
 
   @Test
   public void shouldHandleSignalProcessingException() {
-    Assertions.assertThat(strategy.handleSignalProcessingException(new Exception(),
+    final ActorInstanceStateTransition transition = Mockito.mock(ActorInstanceStateTransition.class);
+
+    strategy.handleSignalProcessingException(new Exception(),
         Signal.PRE_START,
-        actorInstance,
-        actorInstanceContext))
-        .hasValue(InstanceState.STOPPING);
+        transition,
+        actorInstanceContext);
+
+    Mockito.verify(transition)
+        .transitionState(Mockito.any(InstanceState.class));
   }
 
   @Test
   public void shouldHandlActorCreationException() {
-    Assertions.assertThat(strategy.handleActorCreationException(new Exception(),
-        actorInstance,
-        actorInstanceContext))
-        .hasValue(InstanceState.STOPPED);
+    final ActorInstanceStateTransition transition = Mockito.mock(ActorInstanceStateTransition.class);
+
+    strategy.handleActorCreationException(new Exception(),
+        transition,
+        actorInstanceContext);
+
+    Mockito.verify(transition)
+        .transitionState(Mockito.any(InstanceState.class));
   }
 }
