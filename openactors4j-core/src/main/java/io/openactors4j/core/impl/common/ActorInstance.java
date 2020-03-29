@@ -8,6 +8,8 @@ import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.DeathNote;
 import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
+import io.openactors4j.core.impl.common.ActorInstanceStateMachine.ActorInstanceTransitionContext;
+import io.openactors4j.core.impl.common.ReactiveStateMachine.ReactiveStateUpdater;
 import io.openactors4j.core.impl.messaging.ExtendedMessage;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
@@ -31,9 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 @Getter(AccessLevel.PROTECTED)
 @Slf4j
 @SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter", "TooManyStaticImports"})
-public abstract class ActorInstance<V extends Actor, T> implements ActorInstanceStateTransition {
+public abstract class ActorInstance<V extends Actor, T> {
 
-  private final ActorInstanceContext context;
   private final Callable<V> instanceSupplier;
   @Getter(AccessLevel.PUBLIC)
   private final String name;
@@ -41,6 +42,8 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
   private final StartupMode startupMode;
 
   private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
+
+  private ActorInstanceContext context;
 
   @Getter(AccessLevel.PROTECTED)
   private V instance;
@@ -50,31 +53,29 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
 
   private Consumer<Message<T>> deathNoteHandler = this::standardDeathNoteHandler;
 
-  private ActorInstanceStateMachine stateMachine = ActorInstanceStateMachine.newInstance()
-      .presetStateMatrix(this::noShift)
-      .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
-      .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, this::shift)
-      .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
-      .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
-      .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
-      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::shift)
-      .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
-      .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)
-      .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
-      //      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
-//      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
-//      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
-//      .addState(InstanceState.RESTARTING, InstanceState.STOPPED, this::stopInstance)
-//      .addState(InstanceState.RESTARTING_DELAYED, InstanceState.STOPPED, this::stopInstance)
-//      .addState(InstanceState.RUNNING, InstanceState.STOPPED, this::stopInstance)
-//      .addState(InstanceState.STARTING, InstanceState.STOPPED, this::stopInstance)
-//      .addState(InstanceState.RUNNING, InstanceState.SUSPENDED, this::suspendInstance)
-//      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::startComplete)
-//      .addState(InstanceState.STARTING, InstanceState.RESTARTING_DELAYED, this::startFailed)
-//      .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
-//      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
-//      .addState(InstanceState.STARTING, InstanceState.RESTARTING,this::restartInstance)
-      .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance);
+  private ActorInstanceStateMachine stateMachine;
+
+  public void initializeAndStart(final ActorInstanceContext context) {
+    this.context = context;
+
+    this.stateMachine = context.provideStateMachine(name);
+
+    this.stateMachine
+        .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
+        .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, this::shift)
+        .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
+        .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
+        .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
+        .addState(InstanceState.STARTING, InstanceState.RUNNING, this::shift)
+        .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
+        .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)
+        .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
+        .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
+        .setDefaultAction(this::noShift)
+        .start(InstanceState.NEW);
+
+    context.assignAndCreate(this);
+  }
 
   /**
    * Handle a message which is destined for this actor:
@@ -97,20 +98,11 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
    * reception of the first message
    */
   public void triggerActorCreation() {
-    stateMachine.start();
-
     if (startupMode == StartupMode.IMMEDIATE) {
-      transitionState(InstanceState.CREATING);
+      stateMachine.postStateTransition(InstanceState.CREATING);
     } else {
-      transitionState(InstanceState.CREATE_DELAYED);
+      stateMachine.postStateTransition(InstanceState.CREATE_DELAYED);
     }
-  }
-
-  /**
-   * Move the actor instance to a new state.
-   */
-  public void transitionState(final InstanceState desiredState) {
-    stateMachine.transitionState(desiredState);
   }
 
   public void parentalLifecycleEvent(final ParentLifecycleEvent lifecycleEvent) {
@@ -121,7 +113,7 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
   }
 
   public InstanceState getInstanceState() {
-    return stateMachine.getInstanceState();
+    return stateMachine.getCurrentState();
   }
 
   /**
@@ -182,12 +174,12 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
         } else {
           context.enqueueMessage(message);
 
-          switch (stateMachine.getInstanceState()) {
+          switch (stateMachine.getCurrentState()) {
             case RUNNING:
               context.scheduleMessageProcessing();
               break;
             case CREATE_DELAYED:
-              transitionState(InstanceState.CREATING);
+              stateMachine.postStateTransition(InstanceState.CREATING);
               break;
             default:
           }
@@ -203,7 +195,7 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
 
     childActors.values().forEach(child -> child.routeMessage(message));
 
-    transitionState(InstanceState.STOPPED);
+    stateMachine.postStateTransition(InstanceState.STOPPED);
   }
 
   private void systemActorDeathNoteHandler(final Message<T> message) {
@@ -225,7 +217,7 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
       log.info("Actor {} caught exception in message processing", name, e);
 
       supervisionStrategy.handleMessageProcessingException(e,
-          new WeakActorInstanceStateTransition<>(this, name),
+          weakReference(),
           context);
     } finally {
       actorContext.setCurrentSender(null);
@@ -254,8 +246,18 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
     }
   }
 
-  private WeakActorInstanceStateTransition<V, T> weakReference() {
-    return new WeakActorInstanceStateTransition<>(this, name);
+  private WeakActorInstanceStateTransition weakReference() {
+    return new WeakActorInstanceStateTransition(new ActorInstanceStateTransition() {
+      @Override
+      public void transitionState(InstanceState desiredState) {
+        stateMachine.postStateTransition(desiredState);
+      }
+
+      @Override
+      public String getName() {
+        return name;
+      }
+    });
   }
 
   /**
@@ -268,26 +270,29 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private void createNewInstance(final InstanceState sourceState,
                                  final InstanceState targetState,
-                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+                                 final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                 final Optional<ActorInstanceTransitionContext> transitionContext) {
     this.actorContext = new ActorContextImpl(context);
 
     context.runAsync(() -> createEnclosedActor())
         .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
-            InstanceState.STARTING, InstanceState.CREATE_FAILED));
+            InstanceState.STARTING, InstanceState.CREATE_FAILED, updater));
   }
 
   private void startNewInstance(final InstanceState sourceState,
                                 final InstanceState targetState,
-                                final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+                                final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                final Optional<ActorInstanceTransitionContext> transitionContext) {
     context.runAsync(() -> sendSignal(Signal.PRE_START))
         .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
-            InstanceState.RUNNING, InstanceState.START_FAILED));
+            InstanceState.RUNNING, InstanceState.START_FAILED, updater));
   }
 
   private void executeSupervisionStrategy(final InstanceState sourceState,
                                           final InstanceState targetState,
-                                          final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
-    final ActorInstanceStateMachine.TransitionContext ctx = transitionContext
+                                          final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                          final Optional<ActorInstanceTransitionContext> transitionContext) {
+    final ActorInstanceTransitionContext ctx = transitionContext
         .orElseThrow(() -> new IllegalArgumentException("Expected transaction context on executing supervision strategy for actor {}" + name));
 
     switch (sourceState) {
@@ -316,34 +321,41 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
 
   private void transitionConditionallyOnException(final Throwable throwable,
                                                   final InstanceState onSuccessState,
-                                                  final InstanceState onExceptionState) {
+                                                  final InstanceState onExceptionState,
+                                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater) {
     Optional.ofNullable(throwable).ifPresentOrElse(toThrow -> {
       log.info("Actor name {} caught exception while transition from state {}",
-          name, stateMachine.getInstanceState(), throwable);
+          name, stateMachine.getCurrentState(), throwable);
 
-      stateMachine.transitionState(onExceptionState, toThrow);
-    }, () -> stateMachine.transitionState(onExceptionState));
+
+      stateMachine.postStateTransition(onExceptionState, ActorInstanceTransitionContext.builder()
+          .throwable(toThrow)
+          .build());
+    }, () -> stateMachine.postStateTransition(onExceptionState));
   }
 
   private void terminateInstance(final InstanceState sourceState, final InstanceState targetState,
-                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+                                 final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                 final Optional<ActorInstanceTransitionContext> transitionContext) {
     stateMachine.stop();
   }
 
   private void stopInstance(final InstanceState sourceState, final InstanceState targetState,
-                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+                            final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                 final Optional<ActorInstanceTransitionContext> transitionContext) {
 
     context.runAsync(() -> sendSignal(Signal.POST_STOP))
-        .thenRun(() -> stateMachine.transitionState(InstanceState.STOPPED));
+        .thenRun(() -> stateMachine.postStateTransition(InstanceState.STOPPED));
   }
 
 
   private void noShift(final InstanceState fromState, final InstanceState toState,
-                       final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+                       final Optional<ActorInstanceTransitionContext> transitionContext) {
   }
 
   private void shift(final InstanceState fromState, final InstanceState toState,
-                     final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
-    stateMachine.transitionState(toState, transitionContext);
+                     final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                     final Optional<ActorInstanceTransitionContext> transitionContext) {
+    updater.postStateTransition(toState, transitionContext.orElse(null));
   }
 }

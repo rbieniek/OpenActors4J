@@ -14,18 +14,12 @@ import lombok.Getter;
  * to a {@link io.openactors4j.core.impl.system.SupervisionStrategyInternal} which
  * may execute the transition after some significant amount of time
  *
- * @param <V> type reference to enclosed actor
- * @param <T> actor result type
  */
-public class WeakActorInstanceStateTransition<V extends Actor, T> implements ActorInstanceStateTransition {
-  private final WeakReference<ActorInstance<V, T>> reference;
+public class WeakActorInstanceStateTransition implements ActorInstanceStateTransition {
+  private final WeakReference<ActorInstanceStateTransition> reference;
 
-  @Getter
-  private final String name;
-
-  public WeakActorInstanceStateTransition(final ActorInstance<V, T> actorInstance, final String name) {
+  public WeakActorInstanceStateTransition(final ActorInstanceStateTransition actorInstance) {
     reference = new WeakReference<>(actorInstance);
-    this.name =name;
   }
 
   @Override
@@ -33,4 +27,12 @@ public class WeakActorInstanceStateTransition<V extends Actor, T> implements Act
     Optional.ofNullable(reference.get())
         .ifPresent(instance -> instance.transitionState(desiredState));
   }
+
+  @Override
+  public String getName() {
+    return Optional.ofNullable(reference.get())
+        .map(instance -> instance.getName())
+        .orElse(null);
+  }
+
 }

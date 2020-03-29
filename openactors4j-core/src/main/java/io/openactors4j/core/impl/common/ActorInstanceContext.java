@@ -53,13 +53,12 @@ public interface ActorInstanceContext<T> {
   CompletionStage<Void> runAsync(Runnable runnable);
 
   /**
-   * Submit a supplier to be executed in a threadpool provided by the actor system.
+   * Obtain an initialized {@link ActorInstanceStateMachine} from the context
    *
-   * @param supplier the task to be executed
-   * @return a {@link CompletionStage} for handling further processing after the
-   * task has been scheduled
+   * @param name
+   * @return
    */
-  <V> CompletionStage<V> submitAsync(Supplier<V> supplier);
+  ActorInstanceStateMachine provideStateMachine(final String name);
 
   /**
    * Retrieve the parent actor
