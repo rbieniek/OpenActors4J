@@ -7,6 +7,7 @@ package io.openactors4j.core.impl.common;
 public interface ActorInstanceStateTransition {
   /**
    * Move an {@link ActorInstance} to a
+   *
    * @param desiredState the state to move the {@link ActorInstance} to
    */
   void transitionState(final InstanceState desiredState);

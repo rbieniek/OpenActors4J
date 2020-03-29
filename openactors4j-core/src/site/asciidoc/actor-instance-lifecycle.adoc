@@ -84,22 +84,20 @@ Description of lifecycle states:
 
 * _NEW_: Actor instance created
 * _CREATE_DELAYED_: Delay actor creation until first message arrived
-*  _CREATE_: Attempt to CREATING the mananged actor
+* _CREATE_: Attempt to CREATING the mananged actor
 * _CREATE_FAILED_: Attempt to CREATING the mananged actor failed
 * _STARTING_: Attempt to send _PRE_START_ signal to the mananged actor
 * _START_FAILED_: Attempt to send _PRE_START_ signal to the mananged actor failed, enclosed actor raised an exception
 * _RUNNING_: Ready to deliver messages to the enclosed actor
 * _PROCESSING_FAILED:_ Enclosed actor raised an exception while processing the message
 * _RESTARTING_: Attempt to send _PRE_RESTART_ signal to the mananged actor
-* _RESTARTING_FAILED_: Attempt to send _PRE_RESTART_ signal to the mananged actor failed, enclosed actor
-raised an exception
+* _RESTARTING_FAILED_: Attempt to send _PRE_RESTART_ signal to the mananged actor failed, enclosed actor raised an exception
 * _STOPPING_: Attempt to send _POST_STOP_ signal to the mananged actor
 * _STOPPED_: Terminal state, the actor instance is no longer operational and will be removed from the actor system
 
 == Parent lifecycle signals
 
-As stated in the <<actor-instance#actor-instance-relationship, Actor instance relationship>> section, the actor
-instances form a tree relationship from parent to child instances
+As stated in the <<actor-instance#actor-instance-relationship, Actor instance relationship>> section, the actor instances form a tree relationship from parent to child instances
 
 Consequently, any actor lifecycle signal needs to travel from parent instances to child instances as well.
 

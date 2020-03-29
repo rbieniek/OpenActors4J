@@ -1,15 +1,14 @@
 = Actor instance
 
-The actor instance is an internal runtime entity managed by the actor system. It encapsulates the actor
-implementation in a generic way and manages
+The actor instance is an internal runtime entity managed by the actor system.
+It encapsulates the actor implementation in a generic way and manages
 
 * The actor lifecycle
 * Message delivery
 
 == Actor instance types
 
-The actor instance class is a generic base class for managing the overall relationship between an actor and the
-enclosing actor system.
+The actor instance class is a generic base class for managing the overall relationship between an actor and the enclosing actor system.
 
 Given that actors come in two flavors
 
@@ -32,8 +31,8 @@ TypedActorInstance *-- TypedActor
 
 == Actor instance relationship[[actor-instance-relationship]]
 
-As noted before, actors form relationships organized as a single rooted tree. Implementation-wise, the actors do
-not form the tree. instead, it is formed by the actor instances, which implicitly yields the actor tree relationship
+As noted before, actors form relationships organized as a single rooted tree.
+Implementation-wise, the actors do not form the tree. instead, it is formed by the actor instances, which implicitly yields the actor tree relationship
 
 This diagram shows the tree relationship formed by actor instances and the enclosed actors
 

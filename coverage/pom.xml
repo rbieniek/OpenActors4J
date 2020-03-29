@@ -64,7 +64,7 @@
                             <goal>report-aggregate</goal>
                         </goals>
                         <configuration>
-                            <title>OpenActors4j: Overall Coverage </title>
+                            <title>OpenActors4j: Overall Coverage</title>
                             <outputDirectory>${project.reporting.outputDirectory}/jacoco-aggregate-all</outputDirectory>
                         </configuration>
                     </execution>

@@ -8,6 +8,7 @@ import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 /**
@@ -41,6 +42,13 @@ public interface ActorInstanceContext<T> {
    * Assign the actor instance to this context object and start it.
    */
   <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance);
+
+  /**
+   * Obtain an {@link Executor} that can be used for state transitions
+   *
+   * @return an {@link Executor}
+   */
+  Executor stateTransitionExecutor();
 
   /**
    * Submit a runnable to be executed in a threadpool provided by the actor system.

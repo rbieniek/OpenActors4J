@@ -1,8 +1,5 @@
 package io.openactors4j.core.impl.system;
 
-import static java.util.Optional.of;
-
-
 import io.openactors4j.core.common.SupervisionStrategies;
 import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.impl.common.BubbleUpSupervisionStrategy;

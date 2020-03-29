@@ -1,7 +1,6 @@
 package io.openactors4j.core.impl.common;
 
 import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
 
@@ -16,12 +15,12 @@ import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter(AccessLevel.PROTECTED)
 @Slf4j
 @SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter", "TooManyStaticImports"})
-public abstract class ActorInstance<V extends Actor, T> {
+public abstract class ActorInstance<V extends Actor, T> implements ActorInstanceStateTransition {
 
   private final ActorInstanceContext context;
   private final Callable<V> instanceSupplier;
@@ -52,13 +51,16 @@ public abstract class ActorInstance<V extends Actor, T> {
   private Consumer<Message<T>> deathNoteHandler = this::standardDeathNoteHandler;
 
   private ActorInstanceStateMachine stateMachine = ActorInstanceStateMachine.newInstance()
-      .presetStateMatrix(ActorInstanceStateMachine::noShift)
+      .presetStateMatrix(this::noShift)
       .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
-      .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, ActorInstanceStateMachine::shift)
+      .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, this::shift)
       .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
       .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
-      .addState(InstanceState.STARTING, InstanceState.RUNNING, ActorInstanceStateMachine::shift)
+      .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
+      .addState(InstanceState.STARTING, InstanceState.RUNNING, this::shift)
       .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
+      .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)
+      .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
       //      .addState(InstanceState.NEW, InstanceState.RUNNING, this::startNewInstance)
 //      .addState(InstanceState.DELAYED, InstanceState.RUNNING, this::startDelayedInstance)
 //      .addState(InstanceState.DELAYED, InstanceState.STOPPED, this::stopInstance)
@@ -72,7 +74,7 @@ public abstract class ActorInstance<V extends Actor, T> {
 //      .addState(InstanceState.RUNNING, InstanceState.RESTARTING, this::restartInstance)
 //      .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::startComplete)
 //      .addState(InstanceState.STARTING, InstanceState.RESTARTING,this::restartInstance)
-      .addState(InstanceState.STOPPING, InstanceState.STOPPED, ActorInstanceStateMachine::shift);
+      .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance);
 
   /**
    * Handle a message which is destined for this actor:
@@ -90,12 +92,14 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   /**
    * Trigger the creation of the enclosed actor.
-   *
+   * <p>
    * Depending on startup mode, the creation will start immediately or will be delayed until the
    * reception of the first message
    */
   public void triggerActorCreation() {
-    if(startupMode == StartupMode.IMMEDIATE) {
+    stateMachine.start();
+
+    if (startupMode == StartupMode.IMMEDIATE) {
       transitionState(InstanceState.CREATING);
     } else {
       transitionState(InstanceState.CREATE_DELAYED);
@@ -106,7 +110,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    * Move the actor instance to a new state.
    */
   public void transitionState(final InstanceState desiredState) {
-    stateMachine.transitionState(desiredState, name);
+    stateMachine.transitionState(desiredState);
   }
 
   public void parentalLifecycleEvent(final ParentLifecycleEvent lifecycleEvent) {
@@ -220,7 +224,9 @@ public abstract class ActorInstance<V extends Actor, T> {
     } catch (Exception e) {
       log.info("Actor {} caught exception in message processing", name, e);
 
-      transitionState(supervisionStrategy.handleMessageProcessingException(e, this, context));
+      supervisionStrategy.handleMessageProcessingException(e,
+          new WeakActorInstanceStateTransition<>(this),
+          context);
     } finally {
       actorContext.setCurrentSender(null);
     }
@@ -248,133 +254,96 @@ public abstract class ActorInstance<V extends Actor, T> {
     }
   }
 
+  private WeakActorInstanceStateTransition<V, T> weakReference() {
+    return new WeakActorInstanceStateTransition<>(this);
+  }
+
   /**
    * Attempt to create the enclosed actor actor.
    *
-   * @param desiredState the desired state, ignored in this case
+   * @param sourceState the state before applying the transition function
+   * @param targetState the desired state, ignored in this case
    * @return the target state to move the state machine to
    */
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
-  private Optional<InstanceState> createNewInstance(final InstanceState desiredState) {
+  private void createNewInstance(final InstanceState sourceState,
+                                 final InstanceState targetState,
+                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
     this.actorContext = new ActorContextImpl(context);
 
-    context.runAsync(this::createEnclosedActor)
-        .whenComplete((result, throwable) ->transitionConditionallyOnException((Throwable)throwable,
-            InstanceState.STARTING,
-            InstanceState.CREATE_FAILED)
-    );
-
-    return empty();
+    context.runAsync(() -> createEnclosedActor())
+        .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
+            InstanceState.STARTING, InstanceState.CREATE_FAILED));
   }
 
-  private Optional<InstanceState> startNewInstance(final InstanceState desiredState) {
+  private void startNewInstance(final InstanceState sourceState,
+                                final InstanceState targetState,
+                                final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
     context.runAsync(() -> sendSignal(Signal.PRE_START))
-        .whenComplete((result, throwable) ->transitionConditionallyOnException((Throwable)throwable,
-            InstanceState.RUNNING,
-            InstanceState.START_FAILED);
-
-    return empty();
+        .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
+            InstanceState.RUNNING, InstanceState.START_FAILED));
   }
 
-  private Optional<InstanceState> executeSupervisionStrategy(final InstanceState desiredState) {
-    switch (desiredState) {
-      case CREATE_FAILED:
+  private void executeSupervisionStrategy(final InstanceState sourceState,
+                                          final InstanceState targetState,
+                                          final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+    final ActorInstanceStateMachine.TransitionContext ctx = transitionContext
+        .orElseThrow(() -> new IllegalArgumentException("Expected transaction context on executing supervision strategy for actor {}" + name));
+
+    switch (sourceState) {
+      case CREATING:
+        supervisionStrategy.handleActorCreationException(ctx.getThrowable(),
+            weakReference(),
+            getContext());
         break;
-      case START_FAILED:
+      case STARTING:
+        supervisionStrategy.handleSignalProcessingException(ctx.getThrowable(),
+            ctx.getSignal(),
+            weakReference(),
+            getContext());
         break;
-      case PROCESSING_FAILED:
+      case RUNNING:
+        supervisionStrategy.handleMessageProcessingException(transitionContext.get().getThrowable(),
+            weakReference(),
+            getContext());
         break;
       default:
-          log.info("cannot execute supervision strategy on transition to target state {}", desiredState);
-          throw new IllegalStateException("No supervision strategy for transition to state "
-              + desiredState);
+        log.info("cannot execute supervision strategy on transition from source state {} to target state {}", sourceState, targetState);
+        throw new IllegalStateException("No supervision strategy for transition from source state"
+            + sourceState + " to target state " + targetState);
     }
-
-    return Optional.empty();
   }
 
-  private InstanceState transitionConditionallyOnException(final Throwable throwable,
-                                                           final InstanceState onSuccessState,
-                                                           final InstanceState onExceptionState) {
-    return Optional.ofNullable(throwable).map(throwable1 -> {
+  private void transitionConditionallyOnException(final Throwable throwable,
+                                                  final InstanceState onSuccessState,
+                                                  final InstanceState onExceptionState) {
+    Optional.ofNullable(throwable).ifPresentOrElse(toThrow -> {
       log.info("Actor name {} caught exception while transition from state {}",
           name, stateMachine.getInstanceState(), throwable);
 
-      return onExceptionState;
-    }).orElse(onExceptionState);
+      stateMachine.transitionState(onExceptionState, toThrow);
+    }, () -> stateMachine.transitionState(onExceptionState));
   }
 
-  private Optional<InstanceState> startDelayedInstance(final InstanceState desiredState) {
-    instanceState = InstanceState.STARTING;
-
-    context.runAsync(this::createEnclosedActor)
-        .handle((s, t) -> sendPreStartSignalAfterCreation(s, (Throwable) t))
-        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
-        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
-
-    return empty();
+  private void terminateInstance(final InstanceState sourceState, final InstanceState targetState,
+                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+    stateMachine.stop();
   }
 
+  private void stopInstance(final InstanceState sourceState, final InstanceState targetState,
+                                 final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
 
-  @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
-  private InstanceState decideStateAfterInstanceStart(final Signal signal, final Throwable throwable) {
-    InstanceState result = InstanceState.RUNNING;
-
-    if (throwable != null) {
-      result = supervisionStrategy.handleSignalProcessingException(throwable, signal, this, context);
-    }
-
-    return result;
-  }
-
-  @SneakyThrows
-  private Object sendPreStartSignalAfterCreation(final Object object, final Throwable throwable) {
-
-    if (throwable == null) {
-      sendSignal(Signal.PRE_START);
-    } else {
-      throw throwable;
-    }
-
-    return object;
-  }
-
-  private Optional<InstanceState> stopInstance(final InstanceState desiredState) {
     context.runAsync(() -> sendSignal(Signal.POST_STOP))
-        .whenComplete((state, throwable) -> {
-          if (throwable != null) {
-            log.info("Actor failed to process stop signal",
-                throwable);
-          }
-        });
-
-    context.actorInstanceStopped();
-
-    return of(InstanceState.STOPPED);
-  }
-
-  private Optional<InstanceState> suspendInstance(final InstanceState desiredState) {
-
-    return of(InstanceState.STOPPED);
-  }
-
-  private Optional<InstanceState> startComplete(final InstanceState desiredState) {
-    context.scheduleMessageProcessing();
-
-    return of(desiredState);
+        .thenRun(() -> stateMachine.transitionState(InstanceState.STOPPED));
   }
 
 
-  private Optional<InstanceState> startFailed(final InstanceState desiredState) {
-
-    return of(desiredState);
+  private void noShift(final InstanceState fromState, final InstanceState toState,
+                       final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
   }
 
-  private Optional<InstanceState> restartInstance(final InstanceState desiredState) {
-    context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
-        .handle((s, t) -> decideStateAfterInstanceStart(Signal.PRE_START, (Throwable) t))
-        .whenComplete((state, throwable) -> transitionState((InstanceState) state));
-    return empty();
+  private void shift(final InstanceState fromState, final InstanceState toState,
+                     final Optional<ActorInstanceStateMachine.TransitionContext> transitionContext) {
+    stateMachine.transitionState(toState, transitionContext);
   }
-
 }

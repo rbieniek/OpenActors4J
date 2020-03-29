@@ -13,9 +13,9 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
   private AtomicInteger retryCounter = new AtomicInteger(0);
 
   @Override
-  public void handleMessageProcessingException(final Exception processingException,
-                                                        final ActorInstanceStateTransition transition,
-                                                        final ActorInstanceContext context) {
+  public void handleMessageProcessingException(final Throwable processingException,
+                                               final ActorInstanceStateTransition transition,
+                                               final ActorInstanceContext context) {
     transition.transitionState(incrementAndCheckRetryCounter(Optional.of(maxRetries)
         .filter(value -> value > 0), InstanceState.STOPPING)
         .orElse(InstanceState.RESTARTING));
@@ -23,9 +23,9 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
 
   @Override
   public void handleSignalProcessingException(final Throwable signalThrowable,
-                                                       final Signal signal,
+                                              final Signal signal,
                                               final ActorInstanceStateTransition transition,
-                                                       final ActorInstanceContext context) {
+                                              final ActorInstanceContext context) {
     transition.transitionState(incrementAndCheckRetryCounter(Optional.of(maxRetries)
         .filter(value -> value > 0), InstanceState.STOPPING)
         .orElse(determineStateFromSignal(signal)));
@@ -34,7 +34,7 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
   @Override
   public void handleActorCreationException(final Throwable signalThrowable,
                                            final ActorInstanceStateTransition transition,
-                                                              final ActorInstanceContext context) {
+                                           final ActorInstanceContext context) {
     transition.transitionState(incrementAndCheckRetryCounter(Optional.of(maxRetries)
         .filter(value -> value > 0), InstanceState.STOPPED)
         .orElse(InstanceState.CREATING));
@@ -50,10 +50,10 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
   private InstanceState determineStateFromSignal(final Signal signal) {
     final InstanceState instanceState;
 
-    switch(signal) {
+    switch (signal) {
       case PRE_START:
-       instanceState = InstanceState.STARTING;
-       break;
+        instanceState = InstanceState.STARTING;
+        break;
       case PRE_RESTART:
         instanceState = InstanceState.RESTARTING;
         break;

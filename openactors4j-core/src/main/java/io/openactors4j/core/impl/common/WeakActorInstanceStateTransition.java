@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * Transitioon the state of an {@link ActorInstance} based on a {@link WeakReference} to that
  * instance.
- *
+ * <p>
  * In case, the enclosed instance has already been terminated and garbage collected, the transition
  * will not be executed. This class is used when passing the {@link ActorInstance} reference
  * to a {@link io.openactors4j.core.impl.system.SupervisionStrategyInternal} which
@@ -18,6 +18,7 @@ import java.util.Optional;
  */
 public class WeakActorInstanceStateTransition<V extends Actor, T> implements ActorInstanceStateTransition {
   private WeakReference<ActorInstance<V, T>> reference;
+
   public WeakActorInstanceStateTransition(final ActorInstance<V, T> actorInstance) {
     reference = new WeakReference<>(actorInstance);
   }

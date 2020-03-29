@@ -38,7 +38,7 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
   private AtomicInteger currentBackoffFactor = new AtomicInteger(0);
 
   @Override
-  public void handleMessageProcessingException(final Exception processingException,
+  public void handleMessageProcessingException(final Throwable processingException,
                                                final ActorInstanceStateTransition transition,
                                                final ActorInstanceContext context) {
     handleExceptionInternal(transition, InstanceState.RESTARTING);

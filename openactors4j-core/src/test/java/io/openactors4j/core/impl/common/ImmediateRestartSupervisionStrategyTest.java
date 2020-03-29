@@ -2,7 +2,6 @@ package io.openactors4j.core.impl.common;
 
 import io.openactors4j.core.common.Signal;
 import java.util.EnumSet;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
