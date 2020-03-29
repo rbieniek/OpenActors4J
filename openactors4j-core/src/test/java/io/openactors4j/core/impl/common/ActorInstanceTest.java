@@ -89,6 +89,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
+  /*
   @Test
   public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
@@ -497,6 +498,8 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
+
+*/
 
   @RequiredArgsConstructor
   @Getter

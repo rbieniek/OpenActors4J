@@ -225,7 +225,7 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
       log.info("Actor {} caught exception in message processing", name, e);
 
       supervisionStrategy.handleMessageProcessingException(e,
-          new WeakActorInstanceStateTransition<>(this),
+          new WeakActorInstanceStateTransition<>(this, name),
           context);
     } finally {
       actorContext.setCurrentSender(null);
@@ -255,7 +255,7 @@ public abstract class ActorInstance<V extends Actor, T> implements ActorInstance
   }
 
   private WeakActorInstanceStateTransition<V, T> weakReference() {
-    return new WeakActorInstanceStateTransition<>(this);
+    return new WeakActorInstanceStateTransition<>(this, name);
   }
 
   /**

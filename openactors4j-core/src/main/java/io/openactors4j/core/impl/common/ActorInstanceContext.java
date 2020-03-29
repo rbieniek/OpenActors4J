@@ -44,13 +44,6 @@ public interface ActorInstanceContext<T> {
   <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance);
 
   /**
-   * Obtain an {@link Executor} that can be used for state transitions
-   *
-   * @return an {@link Executor}
-   */
-  Executor stateTransitionExecutor();
-
-  /**
    * Submit a runnable to be executed in a threadpool provided by the actor system.
    *
    * @param runnable the task to be executed

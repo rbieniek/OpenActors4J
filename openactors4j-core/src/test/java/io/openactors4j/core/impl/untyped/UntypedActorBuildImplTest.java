@@ -15,6 +15,7 @@ import io.openactors4j.core.common.SupervisionStrategy;
 import io.openactors4j.core.common.UnboundedMailbox;
 import io.openactors4j.core.impl.common.ActorInstance;
 import io.openactors4j.core.impl.common.ActorInstanceContext;
+import io.openactors4j.core.impl.common.ActorInstanceStateTransition;
 import io.openactors4j.core.impl.common.InstanceState;
 import io.openactors4j.core.impl.system.ActorBuilderContext;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
@@ -189,13 +190,18 @@ public class UntypedActorBuildImplTest {
             .build())
         .withSupervisionStrategy(new SupervisionStrategyInternal() {
           @Override
-          public InstanceState handleSignalProcessingException(Throwable signalThrowable, Signal signal, ActorInstance actorInstance, ActorInstanceContext context) {
-            return InstanceState.RUNNING;
+          public void handleMessageProcessingException(Throwable processingException, ActorInstanceStateTransition transition, ActorInstanceContext context) {
+
           }
 
           @Override
-          public InstanceState handleMessageProcessingException(Exception processingException, ActorInstance actorInstance, ActorInstanceContext context) {
-            return InstanceState.RUNNING;
+          public void handleSignalProcessingException(Throwable signalThrowable, Signal signal, ActorInstanceStateTransition transition, ActorInstanceContext context) {
+
+          }
+
+          @Override
+          public void handleActorCreationException(Throwable signalThrowable, ActorInstanceStateTransition transition, ActorInstanceContext context) {
+
           }
         })
         .create())

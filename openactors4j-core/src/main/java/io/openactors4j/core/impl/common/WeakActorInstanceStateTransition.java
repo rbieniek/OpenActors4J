@@ -3,6 +3,7 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.Actor;
 import java.lang.ref.WeakReference;
 import java.util.Optional;
+import lombok.Getter;
 
 /**
  * Transitioon the state of an {@link ActorInstance} based on a {@link WeakReference} to that
@@ -17,10 +18,14 @@ import java.util.Optional;
  * @param <T> actor result type
  */
 public class WeakActorInstanceStateTransition<V extends Actor, T> implements ActorInstanceStateTransition {
-  private WeakReference<ActorInstance<V, T>> reference;
+  private final WeakReference<ActorInstance<V, T>> reference;
 
-  public WeakActorInstanceStateTransition(final ActorInstance<V, T> actorInstance) {
+  @Getter
+  private final String name;
+
+  public WeakActorInstanceStateTransition(final ActorInstance<V, T> actorInstance, final String name) {
     reference = new WeakReference<>(actorInstance);
+    this.name =name;
   }
 
   @Override
