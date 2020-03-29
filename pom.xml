@@ -73,6 +73,7 @@
         <java.lib.spotbugs>4.0.1</java.lib.spotbugs>
         <java.lib.spotbugs.contrib>7.4.7</java.lib.spotbugs.contrib>
         <java.lib.spotbugs.security>1.10.1</java.lib.spotbugs.security>
+        <java.lib.awaitility>4.0.2</java.lib.awaitility>
     </properties>
 
     <modules>
@@ -193,6 +194,13 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${java.lib.mockito.core}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${java.lib.awaitility}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
