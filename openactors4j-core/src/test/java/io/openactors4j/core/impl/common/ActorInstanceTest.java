@@ -30,11 +30,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -62,17 +64,18 @@ public class ActorInstanceTest {
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
-        WorkingTestActor::new,
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndCreate(actorInstance);
+    actorInstance.initializeAndStart(actorInstanceContext);
     assertThat(actorInstance.getPayloads()).isEmpty();
 
-    Thread.sleep(100);
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() ->actorInstance.getInstanceState() == InstanceState.RUNNING);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
@@ -532,8 +535,8 @@ public class ActorInstanceTest {
     }
 
     @Override
-    public <V> CompletionStage<V> submitAsync(Supplier<V> supplier) {
-      return CompletableFuture.supplyAsync(supplier, executorService);
+    public ActorInstanceStateMachine provideStateMachine(final String name) {
+      return new ActorInstanceStateMachine(executorService, name);
     }
 
     @Override
@@ -612,8 +615,8 @@ public class ActorInstanceTest {
     @Getter
     private final List<T> payloads = Collections.synchronizedList(new LinkedList<>());
 
-    protected TestActorInstance(ActorInstanceContext context, Callable<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
+    protected TestActorInstance(Callable<V> supplier, String name, SupervisionStrategyInternal supervisionStrategy, StartupMode startupMode) {
+      super(supplier, name, supervisionStrategy, startupMode);
     }
 
     @Override
@@ -641,22 +644,20 @@ public class ActorInstanceTest {
 
   private static class WorkingTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
 
-    public WorkingTestActorInstance(ActorInstanceContext<T> context,
-                                    Callable<V> supplier,
+    public WorkingTestActorInstance(Callable<V> supplier,
                                     String name,
                                     SupervisionStrategyInternal supervisionStrategy,
                                     StartupMode startupMode) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
+      super(supplier, name, supervisionStrategy, startupMode);
     }
   }
 
   private static class MessageHandlingFailureTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
-    public MessageHandlingFailureTestActorInstance(final ActorInstanceContext<T> context,
-                                                   final Callable<V> supplier,
+    public MessageHandlingFailureTestActorInstance(final Callable<V> supplier,
                                                    final String name,
                                                    final SupervisionStrategyInternal supervisionStrategy,
                                                    final StartupMode startupMode) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
+      super(supplier, name, supervisionStrategy, startupMode);
     }
 
     @Override
@@ -668,24 +669,22 @@ public class ActorInstanceTest {
   private static class SignalHandlingFailureTestActorInstance<V extends Actor, T> extends TestActorInstance<V, T> {
     private final Set<Signal> failingSignals;
 
-    public SignalHandlingFailureTestActorInstance(final ActorInstanceContext<T> context,
-                                                  final Callable<V> supplier,
+    public SignalHandlingFailureTestActorInstance(final Callable<V> supplier,
                                                   final String name,
                                                   final SupervisionStrategyInternal supervisionStrategy,
                                                   final StartupMode startupMode,
                                                   final Signal failingSignal) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
+      super(supplier, name, supervisionStrategy, startupMode);
 
       this.failingSignals = Collections.singleton(failingSignal);
     }
 
-    public SignalHandlingFailureTestActorInstance(final ActorInstanceContext<T> context,
-                                                  final Callable<V> supplier,
+    public SignalHandlingFailureTestActorInstance(final Callable<V> supplier,
                                                   final String name,
                                                   final SupervisionStrategyInternal supervisionStrategy,
                                                   final StartupMode startupMode,
                                                   final Set<Signal> failingSignals) {
-      super(context, supplier, name, supervisionStrategy, startupMode);
+      super(supplier, name, supervisionStrategy, startupMode);
 
       this.failingSignals = Collections.unmodifiableSet(failingSignals);
     }

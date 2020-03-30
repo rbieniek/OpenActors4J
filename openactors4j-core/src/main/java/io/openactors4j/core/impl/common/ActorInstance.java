@@ -41,7 +41,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   private final SupervisionStrategyInternal supervisionStrategy;
   private final StartupMode startupMode;
 
-  private final Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
+  private Map<String, ActorInstance> childActors = new ConcurrentHashMap<>();
 
   private ActorInstanceContext context;
 

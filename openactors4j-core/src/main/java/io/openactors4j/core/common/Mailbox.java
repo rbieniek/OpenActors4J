@@ -24,8 +24,6 @@ public interface Mailbox<T> {
   default void setOverflowHandler(MailboxOverflowHandler<T> handler) {
   }
 
-  ;
-
   /**
    * lifecycle method to notify the mailbox implementation that it should begin to accept messages
    * <p>
@@ -35,8 +33,6 @@ public interface Mailbox<T> {
   default void startReceiving() {
   }
 
-  ;
-
   /**
    * lifecycle method to notify the mailbox implementation that it should stop to accept messages.
    * <p>
@@ -45,8 +41,6 @@ public interface Mailbox<T> {
    */
   default void stopReceiving() {
   }
-
-  ;
 
   /**
    * Query the mailbox if it has at least one message which needs processing
