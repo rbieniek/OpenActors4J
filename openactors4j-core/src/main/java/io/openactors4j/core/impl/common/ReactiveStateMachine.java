@@ -1,5 +1,7 @@
 package io.openactors4j.core.impl.common;
 
+import io.openactors4j.core.monitoring.ActorStateEvent;
+import io.openactors4j.core.monitoring.ActorStateEventSubscriber;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -80,6 +82,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
   public ReactiveStateMachine(final ExecutorService executorService, final String name) {
     publisher = new SubmissionPublisher<>(executorService, Flow.defaultBufferSize());
+
     this.name = name;
   }
 
@@ -101,6 +104,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
    */
   public void stop() {
     publisher.close();
+    shutdownHook();
   }
 
   public ReactiveStateMachine<T, V> setDefaultAction(final @NonNull ReactiveStateDefaultTransitionAction<T, V> defaultAction) {
@@ -131,7 +135,6 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
     return this;
   }
-
 
   /**
    * Post a state transition to this machine.
@@ -187,6 +190,8 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
             stateTransition.getContext());
 
     currentState = nextState;
+
+    emitMonitoringEvent(currentState);
   }
 
   private void callbackPostStateTransition(final T newState, final V context) {
@@ -197,6 +202,12 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
           .build());
     }
   }
+
+  protected void emitMonitoringEvent(final T state) {
+
+  }
+
+  protected void shutdownHook() {}
 
   private class ReactiveStateSubscriber implements Flow.Subscriber<QueuedStateTransition<T, V>> {
     private Flow.Subscription subscription;
