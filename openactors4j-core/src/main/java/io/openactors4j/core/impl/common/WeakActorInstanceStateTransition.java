@@ -1,9 +1,7 @@
 package io.openactors4j.core.impl.common;
 
-import io.openactors4j.core.common.Actor;
 import java.lang.ref.WeakReference;
 import java.util.Optional;
-import lombok.Getter;
 
 /**
  * Transitioon the state of an {@link ActorInstance} based on a {@link WeakReference} to that
@@ -13,7 +11,6 @@ import lombok.Getter;
  * will not be executed. This class is used when passing the {@link ActorInstance} reference
  * to a {@link io.openactors4j.core.impl.system.SupervisionStrategyInternal} which
  * may execute the transition after some significant amount of time
- *
  */
 public class WeakActorInstanceStateTransition implements ActorInstanceStateTransition {
   private final WeakReference<ActorInstanceStateTransition> reference;
