@@ -74,6 +74,101 @@ public class ReactiveMailboxSchedulerTest {
   }
 
   @Test
+  public void shouldNotDeliverSecondMessageToOneDeregisteredMailbox() {
+    final TestClient client = TestClient.builder().build();
+    final Mailbox<Message<TestData>> mailbox = scheduler.registerMailbox(new UnboundedMailbox<>(), client);
+
+    client.setMailbox(mailbox);
+
+    mailbox.startReceiving();
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(1)
+            .build()));
+
+    Awaitility.await()
+        .atMost(1, TimeUnit.SECONDS)
+        .until(() -> client.getCounter() == 1);
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+
+    scheduler.deregisterMailbox(mailbox);
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(2)
+            .build()));
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+  }
+
+
+  @Test
+  public void shouldNotDeliverSecondMessageToOneStoppedAndDeregisteredMailbox() {
+    final TestClient client = TestClient.builder().build();
+    final Mailbox<Message<TestData>> mailbox = scheduler.registerMailbox(new UnboundedMailbox<>(), client);
+
+    client.setMailbox(mailbox);
+
+    mailbox.startReceiving();
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(1)
+            .build()));
+
+    Awaitility.await()
+        .atMost(1, TimeUnit.SECONDS)
+        .until(() -> client.getCounter() == 1);
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+
+    mailbox.stopReceiving();
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(2)
+            .build()));
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+
+    scheduler.deregisterMailbox(mailbox);
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(2)
+            .build()));
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+  }
+
+  @Test
   public void shouldDeliverManyMessageToOneMailbox() {
     final TestClient client = TestClient.builder().build();
     final Mailbox<Message<TestData>> mailbox = scheduler.registerMailbox(new UnboundedMailbox<>(), client);
