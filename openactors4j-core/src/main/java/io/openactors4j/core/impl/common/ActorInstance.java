@@ -62,16 +62,17 @@ public abstract class ActorInstance<V extends Actor, T> {
 
     this.stateMachine
         .addState(InstanceState.NEW, InstanceState.CREATING, this::createNewInstance)
-        .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, this::shift)
+        .addState(InstanceState.NEW, InstanceState.CREATE_DELAYED, this::noAction)
         .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
         .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
-        .addState(InstanceState.STARTING, InstanceState.RUNNING, this::shift)
+        .addState(InstanceState.STARTING, InstanceState.RUNNING, this::noAction)
         .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
+        .addState(InstanceState.RUNNING, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
-        .setDefaultAction(this::noShift)
+        .setDefaultAction(this::noAction)
         .start(InstanceState.NEW);
 
     context.assignAndCreate(this);
@@ -83,7 +84,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    * @param message the message to process;
    */
   @SuppressWarnings("PMD.SignatureDeclareThrowsException")
-  protected abstract void handleMessage(final Message<T> message) throws Exception;
+  protected abstract void sendMessageToActor(final Message<T> message) throws Exception;
 
   /**
    * Handle signal reception
@@ -174,14 +175,8 @@ public abstract class ActorInstance<V extends Actor, T> {
         } else {
           context.enqueueMessage(message);
 
-          switch (stateMachine.getCurrentState()) {
-            case RUNNING:
-              context.scheduleMessageProcessing();
-              break;
-            case CREATE_DELAYED:
-              stateMachine.postStateTransition(InstanceState.CREATING);
-              break;
-            default:
+          if (stateMachine.getCurrentState() == InstanceState.CREATE_DELAYED) {
+            stateMachine.postStateTransition(InstanceState.CREATING);
           }
         }
       });
@@ -195,7 +190,7 @@ public abstract class ActorInstance<V extends Actor, T> {
 
     childActors.values().forEach(child -> child.routeMessage(message));
 
-    stateMachine.postStateTransition(InstanceState.STOPPED);
+    stateMachine.postStateTransition(InstanceState.STOPPING);
   }
 
   private void systemActorDeathNoteHandler(final Message<T> message) {
@@ -208,11 +203,11 @@ public abstract class ActorInstance<V extends Actor, T> {
    * handle the next message in the mailbox:
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
-  public void handleNextMessage(final Message<T> message) {
+  public void processMessage(final Message<T> message) {
     try {
       actorContext.setCurrentSender(context.actorRefForAddress(message.getSender()));
 
-      handleMessage(message);
+      sendMessageToActor(message);
     } catch (Exception e) {
       log.info("Actor {} caught exception in message processing", name, e);
 
@@ -274,7 +269,8 @@ public abstract class ActorInstance<V extends Actor, T> {
                                  final Optional<ActorInstanceTransitionContext> transitionContext) {
     this.actorContext = new ActorContextImpl(context);
 
-    context.runAsync(() -> createEnclosedActor())
+
+    CompletableFuture.anyOf(context.runAsync(() -> createEnclosedActor()))
         .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
             InstanceState.STARTING, InstanceState.CREATE_FAILED, updater));
   }
@@ -331,26 +327,33 @@ public abstract class ActorInstance<V extends Actor, T> {
       stateMachine.postStateTransition(onExceptionState, ActorInstanceTransitionContext.builder()
           .throwable(toThrow)
           .build());
-    }, () -> stateMachine.postStateTransition(onExceptionState));
+    }, () -> stateMachine.postStateTransition(onSuccessState));
   }
 
   private void terminateInstance(final InstanceState sourceState, final InstanceState targetState,
                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                  final Optional<ActorInstanceTransitionContext> transitionContext) {
     stateMachine.stop();
+    context.terminateProcessing();
   }
 
   private void stopInstance(final InstanceState sourceState, final InstanceState targetState,
                             final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
-                                 final Optional<ActorInstanceTransitionContext> transitionContext) {
+                            final Optional<ActorInstanceTransitionContext> transitionContext) {
 
     context.runAsync(() -> sendSignal(Signal.POST_STOP))
-        .thenRun(() -> stateMachine.postStateTransition(InstanceState.STOPPED));
+        .whenComplete((value, throwable) -> stateMachine.postStateTransition(InstanceState.STOPPED));
   }
 
 
-  private void noShift(final InstanceState fromState, final InstanceState toState,
-                       final Optional<ActorInstanceTransitionContext> transitionContext) {
+  private void noAction(final InstanceState fromState, final InstanceState toState,
+                        final Optional<ActorInstanceTransitionContext> transitionContext) {
+  }
+
+  private void noAction(final InstanceState fromState, final InstanceState toState,
+                        final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                        final Optional<ActorInstanceTransitionContext> transitionContext) {
+    updater.postStateTransition(toState, transitionContext.orElse(null));
   }
 
   private void shift(final InstanceState fromState, final InstanceState toState,

@@ -7,9 +7,8 @@ import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
-import java.util.function.Supplier;
 
 /**
  * Internal interface to provide contextual information and lifecycle methods
@@ -18,12 +17,6 @@ import java.util.function.Supplier;
  */
 @SuppressWarnings("PMD.TooManyMethods")
 public interface ActorInstanceContext<T> {
-  /**
-   * Ask the actor system to schedule the calling actor instance for processing the next message
-   * in the mailbox.
-   */
-  void scheduleMessageProcessing();
-
   /**
    * Ask the actor system to schedule the calling actor instance for processing the next message
    * in the mailbox.
@@ -44,13 +37,18 @@ public interface ActorInstanceContext<T> {
   <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance);
 
   /**
+   * Assign the actor instance to this context object and start it.
+   */
+  void terminateProcessing();
+
+  /**
    * Submit a runnable to be executed in a threadpool provided by the actor system.
    *
    * @param runnable the task to be executed
    * @return a {@link CompletionStage} for handling further processing after
    * the task has been scheduled
    */
-  CompletionStage<Void> runAsync(Runnable runnable);
+  CompletableFuture<Void> runAsync(Runnable runnable);
 
   /**
    * Obtain an initialized {@link ActorInstanceStateMachine} from the context
@@ -97,9 +95,4 @@ public interface ActorInstanceContext<T> {
    * @return an initialized {@link ActorRef}
    */
   ActorRef actorRefForAddress(SystemAddress address);
-
-  /**
-   * Notify the actor system (through the instance context) about the instance shutdown
-   */
-  void actorInstanceStopped();
 }

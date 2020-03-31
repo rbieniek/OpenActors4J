@@ -27,13 +27,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.awaitility.Awaitility;
@@ -41,6 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ActorInstanceTest {
+  private ReactiveMailboxScheduler<Integer> scheduler;
 
   private SystemAddress testAddress;
   private SystemAddress sourceAddress;
@@ -61,9 +60,16 @@ public class ActorInstanceTest {
         .build();
   }
 
+  @BeforeEach
+  public void setupScheduler() {
+    scheduler = new ReactiveMailboxScheduler<>(Executors.newCachedThreadPool());
+
+    scheduler.initialize();
+  }
+
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
@@ -75,7 +81,7 @@ public class ActorInstanceTest {
 
     Awaitility.await()
         .atMost(5, TimeUnit.SECONDS)
-        .until(() ->actorInstance.getInstanceState() == InstanceState.RUNNING);
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
@@ -83,13 +89,60 @@ public class ActorInstanceTest {
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
-    Thread.sleep(100);
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getPayloads().size() > 0);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+  }
+
+  @Test
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessageAndTerminate() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
+        "test",
+        new ImmediateRestartSupervisionStrategy(1),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstance.initializeAndStart(actorInstanceContext);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getPayloads().size() > 0);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    actorInstance.routeMessage(new ExtendedMessage<Integer, DeathNote>(targetSlip, sourceAddress, DeathNote.INSTANCE));
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.POST_STOP);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
   }
 
   /*
@@ -513,12 +566,13 @@ public class ActorInstanceTest {
 
   @RequiredArgsConstructor
   private static final class TestActorInstanceContext<T> implements ActorInstanceContext<T> {
+    private final MailboxScheduler<T> mailboxScheduler;
+
     public enum TestInstanceState {
       ACTIVE,
       STOPPED;
     }
 
-    private final MailboxHolder<Message<T>> mailboxHolder = new MailboxHolder<>(new UnboundedMailbox<>());
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Getter
@@ -529,8 +583,10 @@ public class ActorInstanceTest {
 
     private ActorInstance<? extends Actor, T> actorInstance;
 
+    private Mailbox<Message<T>> mailbox;
+
     @Override
-    public CompletionStage<Void> runAsync(Runnable runnable) {
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
       return CompletableFuture.runAsync(runnable, executorService);
     }
 
@@ -540,29 +596,8 @@ public class ActorInstanceTest {
     }
 
     @Override
-    public void scheduleMessageProcessing() {
-      if (mailboxHolder.getProcessingLock().tryLock()) {
-        try {
-          CompletableFuture.runAsync(() -> mailboxHolder
-              .getMailbox()
-              .takeMessage()
-              .ifPresent(message -> actorInstance.handleNextMessage(message)), executorService)
-              .whenComplete((s, t) -> {
-                final boolean needReschedule = mailboxHolder.getMailbox().needsScheduling();
-
-                if (needReschedule) {
-                  scheduleMessageProcessing();
-                }
-              });
-        } finally {
-          mailboxHolder.getProcessingLock().unlock();
-        }
-      }
-    }
-
-    @Override
     public void enqueueMessage(Message<T> message) {
-      mailboxHolder.getMailbox().putMessage(message);
+      mailbox.putMessage(message);
     }
 
     @Override
@@ -573,9 +608,19 @@ public class ActorInstanceTest {
     @Override
     public <V extends Actor> void assignAndCreate(ActorInstance<V, T> actorInstance) {
       this.actorInstance = actorInstance;
+      mailbox = mailboxScheduler.registerMailbox(new UnboundedMailbox<>(),
+          () -> mailbox.takeMessage().ifPresent(message -> actorInstance.processMessage(message)));
 
+      mailbox.startReceiving();
       actorInstance.triggerActorCreation();
     }
+
+    @Override
+    public void terminateProcessing() {
+      mailbox.stopReceiving();
+      this.instanceState = TestInstanceState.STOPPED;
+    }
+
 
     @Override
     public ActorInstance parentActor() {
@@ -601,11 +646,6 @@ public class ActorInstanceTest {
     public ActorRef actorRefForAddress(SystemAddress address) {
       return null;
     }
-
-    @Override
-    public void actorInstanceStopped() {
-      this.instanceState = TestInstanceState.STOPPED;
-    }
   }
 
   private static class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {
@@ -620,7 +660,7 @@ public class ActorInstanceTest {
     }
 
     @Override
-    protected final void handleMessage(final Message<T> message) {
+    protected final void sendMessageToActor(final Message<T> message) {
       payloads.add(message.getPayload());
 
       handleMessageInternal(message);

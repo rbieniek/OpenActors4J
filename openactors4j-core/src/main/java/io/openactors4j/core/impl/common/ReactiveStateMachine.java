@@ -10,7 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -104,7 +103,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
     publisher.close();
   }
 
-  public ReactiveStateMachine<T,V> setDefaultAction(final @NonNull ReactiveStateDefaultTransitionAction<T,V> defaultAction) {
+  public ReactiveStateMachine<T, V> setDefaultAction(final @NonNull ReactiveStateDefaultTransitionAction<T, V> defaultAction) {
     this.defaultAction = defaultAction;
 
     return this;
@@ -115,12 +114,12 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
    *
    * @param sourceState the state from which the transition shall occur
    * @param targetState the state to which the transition shall ooccur
-   * @param action the action to be executed on a state change
+   * @param action      the action to be executed on a state change
    * @return the machine instance ready for method chaining
    */
   public ReactiveStateMachine<T, V> addState(final @NonNull T sourceState,
-                                          final @NonNull T targetState,
-                                          final @NonNull  ReactiveStateTransitionAction<T, V> action) {
+                                             final @NonNull T targetState,
+                                             final @NonNull ReactiveStateTransitionAction<T, V> action) {
     final ImmutablePair<T, T> key = ImmutablePair.of(sourceState, targetState);
 
     if (stateTransitions.containsKey(key)) {
@@ -136,7 +135,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
   /**
    * Post a state transition to this machine.
-   *
+   * <p>
    * The state transition will not happen on the caller thread.
    *
    * @param newState the state to move into
@@ -147,11 +146,11 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
   /**
    * Post a state transition to this machine.
-   *
+   * <p>
    * The state transition will not happen on the caller thread.
    *
    * @param newState the state to move into
-   * @param context a contextual object to be passed to the executed transition method
+   * @param context  a contextual object to be passed to the executed transition method
    */
   public void postStateTransition(final T newState, final V context) {
     publisher.submit(QueuedStateTransition.<T, V>builder()
@@ -167,7 +166,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
         sourceState, targetState);
   }
 
-  private ReactiveStateTransitionAction<T,V> wrapDefaultAction() {
+  private ReactiveStateTransitionAction<T, V> wrapDefaultAction() {
     return new ReactiveStateTransitionAction<T, V>() {
       @Override
       public void accept(T sourceState, T targetState, ReactiveStateUpdater<T, V> stateUpdater, Optional<V> transitionContext) {
@@ -191,7 +190,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
   }
 
   private void callbackPostStateTransition(final T newState, final V context) {
-    if(!publisher.isClosed()) {
+    if (!publisher.isClosed()) {
       publisher.submit(QueuedStateTransition.<T, V>builder()
           .state(newState)
           .context(Optional.ofNullable(context))
@@ -199,7 +198,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
     }
   }
 
-  private class ReactiveStateSubscriber implements Flow.Subscriber<QueuedStateTransition<T,V>> {
+  private class ReactiveStateSubscriber implements Flow.Subscriber<QueuedStateTransition<T, V>> {
     private Flow.Subscription subscription;
 
     @Override
@@ -215,7 +214,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
       try {
         moveState(item);
-      } catch(Exception e) {
+      } catch (Exception e) {
         log.error("Exception for machine {} in state transition from state {} to state {}",
             name,
             currentState,

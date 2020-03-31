@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 public class ReactiveMailboxSchedulerTest {
   private ReactiveMailboxScheduler<TestData> scheduler;
   private SystemAddress testAddress;
-  private SystemAddress sourceAddress;
 
   @BeforeEach
   public void setupScheduler() {
@@ -38,12 +37,6 @@ public class ReactiveMailboxSchedulerTest {
         .systemName("test-system")
         .transportScheme("local")
         .path("/test")
-        .build();
-    sourceAddress = SystemAddressImpl.builder()
-        .hostname("localhost")
-        .systemName("test-system")
-        .transportScheme("local")
-        .path("/source")
         .build();
   }
 
@@ -340,7 +333,7 @@ public class ReactiveMailboxSchedulerTest {
             .getLeft()
             .getCounter())
             .reduce((a, b) -> a + b)
-            .orElse(0) == 1024*1024);
+            .orElse(0) == 1024 * 1024);
 
     clients.forEach(pair -> {
       Assertions.assertThat(pair.getLeft().getCounter())
@@ -385,7 +378,7 @@ public class ReactiveMailboxSchedulerTest {
             .getLeft()
             .getCounter())
             .reduce((a, b) -> a + b)
-            .orElse(0) == 1024*1024);
+            .orElse(0) == 1024 * 1024);
   }
 
   @Builder
