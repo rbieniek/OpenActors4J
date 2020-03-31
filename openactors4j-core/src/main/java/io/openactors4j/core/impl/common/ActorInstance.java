@@ -66,6 +66,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.CREATING, InstanceState.STARTING, this::startNewInstance)
         .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
+        .addState(InstanceState.CREATE_FAILED, InstanceState.CREATING, this::createNewInstance)
         .addState(InstanceState.STARTING, InstanceState.RUNNING, this::noAction)
         .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)

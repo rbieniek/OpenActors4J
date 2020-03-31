@@ -21,9 +21,13 @@ import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -32,8 +36,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Singular;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -145,26 +152,93 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
   }
 
-  /*
   @Test
-  public void shouldCreateRestartingDelayedActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
+  public void shouldStopOnCreationFailingActorWithImmediateSupervisionStrategy() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(
         FailedCreationTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
 
-    actorInstanceContext.assignAndCreate(actorInstance);
+    actorInstance.initializeAndStart(actorInstanceContext);
 
-    Thread.sleep(100);
-    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
     assertThat(actorInstance.getReceivedSignals()).isEmpty();
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+  }
+
+  @Test
+  public void shouldStopOnCreationFailingActorWithDelayedSupervisionStrategy() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(
+        FailedCreationTestActor::new,
+        "test",
+        new DelayedRestartSupervisionStrategy(1,
+            Duration.of(5, ChronoUnit.SECONDS),
+            Optional.empty(),
+            Optional.empty(),
+            Executors.newSingleThreadExecutor()),
+        StartupMode.IMMEDIATE);
+
+    actorInstance.initializeAndStart(actorInstanceContext);
+
+    Awaitility.await()
+        .atMost(2, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.CREATE_FAILED);
+    Awaitility.await()
+        .atMost(10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
+
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getReceivedSignals()).isEmpty();
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+  }
+
+  @Test
+  public void shouldCreateAndRecreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final TestActorInstance<Actor, Integer> actorInstance = new WorkingTestActorInstance(SwitchingActorSupplier.builder()
+        .supplier(FailedCreationTestActor::new)
+        .supplier(WorkingTestActor::new)
+        .build(),
+        "test",
+        new ImmediateRestartSupervisionStrategy(1),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    actorInstance.initializeAndStart(actorInstanceContext);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getPayloads().size() > 0);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
+  /*
   @Test
   public void shouldCreateRestartingDelayedFailingSignalActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
@@ -767,6 +841,20 @@ public class ActorInstanceTest {
     @Override
     public void setupContext(ActorContext context) {
       this.context = context;
+    }
+  }
+
+  @Data
+  @Builder
+  private static class SwitchingActorSupplier<T> implements Callable<T> {
+    @Singular
+    private List<Callable<T>> suppliers;
+
+    private int index;
+
+    @Override
+    public T call() throws Exception {
+      return suppliers.get(index++).call();
     }
   }
 }
