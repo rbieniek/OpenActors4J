@@ -3,13 +3,10 @@ package io.openactors4j.core.impl.common;
 import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.MailboxOverflowHandler;
 import io.openactors4j.core.impl.messaging.Message;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
@@ -24,18 +21,13 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
 
   private Map<UUID, WrappedMailbox> mailboxes = new ConcurrentHashMap<>();
   private SubmissionPublisher<UUID> eventPublisher;
-  private Queue<Flow.Subscriber<UUID>> eventSubscribers = new ConcurrentLinkedQueue<>();
+  private SchedulingSubscriber eventSubscriber;
 
-  public void initialize(final int maxParallelSubscribers) {
-    eventPublisher = new SubmissionPublisher<UUID>(executorService,
-        maxParallelSubscribers * Flow.defaultBufferSize());
+  public void initialize() {
+    eventPublisher = new SubmissionPublisher<UUID>(executorService, Flow.defaultBufferSize());
 
-    for(int count = 0; count < maxParallelSubscribers; count++) {
-      final SchedulingSubscriber subscriber = new SchedulingSubscriber(eventSubscribers, mailboxes);
-
-      eventSubscribers.add(subscriber);
-      eventPublisher.subscribe(subscriber);
-    }
+    eventSubscriber = new SchedulingSubscriber(mailboxes);
+    eventPublisher.subscribe(eventSubscriber);
   }
 
   @Override
@@ -54,17 +46,17 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
 
   @Override
   public void deregisterMailbox(Mailbox<Message<T>> mailbox) {
-    if(mailbox instanceof WrappedMailbox) {
-      mailboxes.remove(((WrappedMailbox<T>)mailbox).getUuid());
+    if (mailbox instanceof WrappedMailbox) {
+      mailboxes.remove(((WrappedMailbox<T>) mailbox).getUuid());
     }
   }
 
   @RequiredArgsConstructor
   private static class SchedulingSubscriber implements Flow.Subscriber<UUID> {
-    private final Queue<Flow.Subscriber<UUID>> eventSubscribers;
     private final Map<UUID, WrappedMailbox> mailboxes;
 
     private Flow.Subscription subscription;
+
     @Override
     public void onSubscribe(Flow.Subscription subscription) {
       this.subscription = subscription;
@@ -74,8 +66,6 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
 
     @Override
     public void onNext(UUID item) {
-      log.info("Scheduling mail with ID {}", item);
-
       Optional.ofNullable(mailboxes.get(item))
           .ifPresent(mailbox -> mailbox.getMailboxPublisher().submit(item));
 
@@ -85,13 +75,11 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     @Override
     public void onError(Throwable throwable) {
       log.error("Caught execption while processing schedule request", throwable);
-
-      eventSubscribers.remove(this);
     }
 
     @Override
     public void onComplete() {
-      eventSubscribers.remove(this);
+
     }
   }
 
