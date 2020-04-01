@@ -9,6 +9,7 @@ import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Internal interface to provide contextual information and lifecycle methods
@@ -57,6 +58,14 @@ public interface ActorInstanceContext<T> {
    * @return
    */
   ActorInstanceStateMachine provideStateMachine(final String name);
+
+  /**
+   * Obtain a dedicated executor service for emitting
+   * {@link io.openactors4j.core.monitoring.ActorActionEvent} monitoring events
+   *
+   * @return
+   */
+  ExecutorService provideMonitoringExecutor();
 
   /**
    * Retrieve the parent actor

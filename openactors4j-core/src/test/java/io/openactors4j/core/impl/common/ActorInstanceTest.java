@@ -660,6 +660,11 @@ public class ActorInstanceTest {
     private Mailbox<Message<T>> mailbox;
 
     @Override
+    public ExecutorService provideMonitoringExecutor() {
+      return executorService;
+    }
+
+    @Override
     public CompletableFuture<Void> runAsync(Runnable runnable) {
       return CompletableFuture.runAsync(runnable, executorService);
     }
