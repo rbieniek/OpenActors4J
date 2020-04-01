@@ -14,11 +14,18 @@ import io.openactors4j.core.impl.messaging.ExtendedMessage;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
+import io.openactors4j.core.monitoring.ActorActionEvent;
+import io.openactors4j.core.monitoring.ActorActionEventSubscriber;
+import io.openactors4j.core.monitoring.ActorSignalEvent;
+import io.openactors4j.core.monitoring.ActorSignalEventSubscriber;
+import io.openactors4j.core.monitoring.ActorStateEventSubscriber;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow;
+import java.util.concurrent.SubmissionPublisher;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -55,6 +62,9 @@ public abstract class ActorInstance<V extends Actor, T> {
 
   private ActorInstanceStateMachine stateMachine;
 
+  private SubmissionPublisher<ActorActionEvent> monitoringActionPublisher;
+  private SubmissionPublisher<ActorSignalEvent> monitoringSignalPublisher;
+
   public void initializeAndStart(final ActorInstanceContext context) {
     this.context = context;
 
@@ -75,6 +85,11 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
         .setDefaultAction(this::noAction)
         .start(InstanceState.NEW);
+
+    monitoringActionPublisher = new SubmissionPublisher<>(context.provideMonitoringExecutor(),
+        Flow.defaultBufferSize());
+    monitoringSignalPublisher = new SubmissionPublisher<>(context.provideMonitoringExecutor(),
+        Flow.defaultBufferSize());
 
     context.assignAndCreate(this);
   }
@@ -184,6 +199,14 @@ public abstract class ActorInstance<V extends Actor, T> {
     } else {
       context.undeliverableMessage(message);
     }
+  }
+
+  public void registerActionEventSubscriber(final ActorActionEventSubscriber subscriber) {
+    this.monitoringActionPublisher.subscribe(subscriber);
+  }
+
+  public void registerSignalEventSubscriber(final ActorSignalEventSubscriber subscriber) {
+    this.monitoringSignalPublisher.subscribe(subscriber);
   }
 
   private void standardDeathNoteHandler(final Message<T> message) {
@@ -324,7 +347,6 @@ public abstract class ActorInstance<V extends Actor, T> {
       log.info("Actor name {} caught exception while transition from state {}",
           name, stateMachine.getCurrentState(), throwable);
 
-
       stateMachine.postStateTransition(onExceptionState, ActorInstanceTransitionContext.builder()
           .throwable(toThrow)
           .build());
@@ -335,6 +357,8 @@ public abstract class ActorInstance<V extends Actor, T> {
                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                  final Optional<ActorInstanceTransitionContext> transitionContext) {
     stateMachine.stop();
+    monitoringSignalPublisher.close();
+    monitoringActionPublisher.close();
     context.terminateProcessing();
   }
 
