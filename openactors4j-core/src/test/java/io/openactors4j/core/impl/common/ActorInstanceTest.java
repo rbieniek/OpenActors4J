@@ -269,6 +269,13 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE));
   }
 
   @Test
@@ -295,6 +302,15 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
