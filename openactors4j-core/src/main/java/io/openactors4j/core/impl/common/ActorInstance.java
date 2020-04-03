@@ -16,9 +16,13 @@ import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
 import io.openactors4j.core.monitoring.ActorActionEvent;
 import io.openactors4j.core.monitoring.ActorActionEventSubscriber;
+import io.openactors4j.core.monitoring.ActorActionEventType;
+import io.openactors4j.core.monitoring.ActorOutcomeType;
 import io.openactors4j.core.monitoring.ActorSignalEvent;
 import io.openactors4j.core.monitoring.ActorSignalEventSubscriber;
-import io.openactors4j.core.monitoring.ActorStateEventSubscriber;
+import io.openactors4j.core.monitoring.ActorSignalType;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -190,7 +194,6 @@ public abstract class ActorInstance<V extends Actor, T> {
           }
         } else {
           context.enqueueMessage(message);
-
           if (stateMachine.getCurrentState() == InstanceState.CREATE_DELAYED) {
             stateMachine.postStateTransition(InstanceState.CREATING);
           }
@@ -228,20 +231,24 @@ public abstract class ActorInstance<V extends Actor, T> {
    */
   @SuppressWarnings("PMD.AvoidCatchingGenericException")
   public void processMessage(final Message<T> message) {
+    final ZonedDateTime now = ZonedDateTime.now();
+
     try {
       actorContext.setCurrentSender(context.actorRefForAddress(message.getSender()));
 
       sendMessageToActor(message);
+
+      publishActionEvent(ActorActionEventType.MESSAGE_DELIVERY, now, ActorOutcomeType.SUCCESS);
     } catch (Exception e) {
       log.info("Actor {} caught exception in message processing", name, e);
 
       supervisionStrategy.handleMessageProcessingException(e,
           weakReference(),
           context);
+      publishActionEvent(ActorActionEventType.MESSAGE_DELIVERY, now, ActorOutcomeType.FAILURE);
     } finally {
       actorContext.setCurrentSender(null);
     }
-
   }
 
   /**
@@ -291,21 +298,32 @@ public abstract class ActorInstance<V extends Actor, T> {
                                  final InstanceState targetState,
                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                  final Optional<ActorInstanceTransitionContext> transitionContext) {
+    final ZonedDateTime now = ZonedDateTime.now().now();
+
     this.actorContext = new ActorContextImpl(context);
 
-
     CompletableFuture.anyOf(context.runAsync(() -> createEnclosedActor()))
-        .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
-            InstanceState.STARTING, InstanceState.CREATE_FAILED, updater));
+        .whenComplete((value, throwable) -> {
+          publishActionEvent(ActorActionEventType.CREATE_INSTANCE, now,
+              determineOutcome(throwable));
+          transitionConditionallyOnException((Throwable) throwable,
+              InstanceState.STARTING, InstanceState.CREATE_FAILED, updater);
+        });
   }
 
+  @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private void startNewInstance(final InstanceState sourceState,
                                 final InstanceState targetState,
                                 final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                 final Optional<ActorInstanceTransitionContext> transitionContext) {
+    final ZonedDateTime now = ZonedDateTime.now().now();
+
     context.runAsync(() -> sendSignal(Signal.PRE_START))
-        .whenComplete((value, throwable) -> transitionConditionallyOnException((Throwable) throwable,
-            InstanceState.RUNNING, InstanceState.START_FAILED, updater));
+        .whenComplete((value, throwable) -> {
+          publishSignalEvent(ActorSignalType.SIGNAL_PRE_START, now, determineOutcome((Throwable) throwable));
+          transitionConditionallyOnException((Throwable) throwable,
+            InstanceState.RUNNING, InstanceState.START_FAILED, updater);
+        });
   }
 
   private void executeSupervisionStrategy(final InstanceState sourceState,
@@ -365,9 +383,13 @@ public abstract class ActorInstance<V extends Actor, T> {
   private void stopInstance(final InstanceState sourceState, final InstanceState targetState,
                             final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                             final Optional<ActorInstanceTransitionContext> transitionContext) {
+    final ZonedDateTime now = ZonedDateTime.now().now();
 
     context.runAsync(() -> sendSignal(Signal.POST_STOP))
-        .whenComplete((value, throwable) -> stateMachine.postStateTransition(InstanceState.STOPPED));
+        .whenComplete((value, throwable) -> {
+          publishSignalEvent(ActorSignalType.SIGNAL_POST_STOP, now, determineOutcome((Throwable) throwable));
+          stateMachine.postStateTransition(InstanceState.STOPPED);
+        });
   }
 
 
@@ -385,5 +407,41 @@ public abstract class ActorInstance<V extends Actor, T> {
                      final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                      final Optional<ActorInstanceTransitionContext> transitionContext) {
     updater.postStateTransition(toState, transitionContext.orElse(null));
+  }
+
+  private void publishActionEvent(ActorActionEventType eventType, ZonedDateTime beginAction, ActorOutcomeType outcome) {
+    log.info("actor {} publish action event {} with outcome {} at {}",
+        name, eventType, outcome, beginAction);
+
+    if (monitoringActionPublisher.hasSubscribers()) {
+      monitoringActionPublisher.submit(ActorActionEvent.builder()
+          .action(eventType)
+          .actorName(name)
+          .duration(Duration.between(beginAction, ZonedDateTime.now()))
+          .outcome(outcome)
+          .build());
+    }
+  }
+
+  private void publishSignalEvent(ActorSignalType eventType, ZonedDateTime beginAction, ActorOutcomeType outcome) {
+    log.info("actor {} publish signal event {} with outcome {} at {}",
+        name, eventType, outcome, beginAction);
+
+    if (monitoringSignalPublisher.hasSubscribers()) {
+      monitoringSignalPublisher.submit(ActorSignalEvent.builder()
+          .signal(eventType)
+          .actorName(name)
+          .duration(Duration.between(beginAction, ZonedDateTime.now()))
+          .outcome(outcome)
+          .build());
+    }
+  }
+
+  private ActorOutcomeType determineOutcome(final Throwable throwable) {
+    if(throwable != null) {
+      return ActorOutcomeType.FAILURE;
+    }
+
+    return ActorOutcomeType.SUCCESS;
   }
 }

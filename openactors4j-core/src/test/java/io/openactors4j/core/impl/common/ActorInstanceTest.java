@@ -19,6 +19,13 @@ import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.impl.messaging.RoutingSlip;
 import io.openactors4j.core.impl.messaging.SystemAddressImpl;
 import io.openactors4j.core.impl.system.SupervisionStrategyInternal;
+import io.openactors4j.core.monitoring.ActorActionEvent;
+import io.openactors4j.core.monitoring.ActorActionEventSubscriber;
+import io.openactors4j.core.monitoring.ActorActionEventType;
+import io.openactors4j.core.monitoring.ActorOutcomeType;
+import io.openactors4j.core.monitoring.ActorSignalEvent;
+import io.openactors4j.core.monitoring.ActorSignalEventSubscriber;
+import io.openactors4j.core.monitoring.ActorSignalType;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
 import java.time.Duration;
@@ -27,20 +34,22 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,10 +90,15 @@ public class ActorInstanceTest {
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
     actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
+
     assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(recorder.getActionEvents()).isEmpty();
+    assertThat(recorder.getSignalEvents()).isEmpty();
 
     Awaitility.await()
         .atMost(5, TimeUnit.SECONDS)
@@ -92,6 +106,14 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
@@ -105,6 +127,15 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getActionEvents().size() > 1);
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
   }
 
   @Test
@@ -115,8 +146,11 @@ public class ActorInstanceTest {
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
     actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
+
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Awaitility.await()
@@ -125,6 +159,14 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
@@ -138,6 +180,15 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getActionEvents().size() > 1);
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
 
     actorInstance.routeMessage(new ExtendedMessage<Integer, DeathNote>(targetSlip, sourceAddress, DeathNote.INSTANCE));
 
@@ -150,6 +201,13 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getSignalEventTypes().size() > 1);
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorSignalType.SIGNAL_POST_STOP, ActorOutcomeType.SUCCESS));
   }
 
   @Test
@@ -160,8 +218,10 @@ public class ActorInstanceTest {
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
     actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
 
     Awaitility.await()
         .atMost(5, TimeUnit.SECONDS)
@@ -171,6 +231,13 @@ public class ActorInstanceTest {
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE));
   }
 
   @Test
@@ -185,8 +252,10 @@ public class ActorInstanceTest {
             Optional.empty(),
             Executors.newSingleThreadExecutor()),
         StartupMode.IMMEDIATE);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
     actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
 
     Awaitility.await()
         .atMost(2, TimeUnit.SECONDS)
@@ -213,8 +282,11 @@ public class ActorInstanceTest {
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
     actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
+
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Awaitility.await()
@@ -631,11 +703,85 @@ public class ActorInstanceTest {
 
 */
 
-  @RequiredArgsConstructor
+  @Slf4j
   @Getter
-  private static class MailboxHolder<T> {
-    private final Lock processingLock = new ReentrantLock();
-    private final Mailbox<T> mailbox;
+  private static final class TestMonitoringEventRecorder {
+    private final List<ActorActionEvent> actionEvents = new LinkedList<>();
+    private final List<ActorSignalEvent> signalEvents = new LinkedList<>();
+
+    public List<Pair<ActorActionEventType, ActorOutcomeType>> getActionEventTypes() {
+      return actionEvents.stream()
+          .map(event -> ImmutablePair.of(event.getAction(), event.getOutcome()))
+          .collect(Collectors.toList());
+    }
+
+    public List<Pair<ActorSignalType, ActorOutcomeType>> getSignalEventTypes() {
+      return signalEvents.stream()
+          .map(event -> ImmutablePair.of(event.getSignal(), event.getOutcome()))
+          .collect(Collectors.toList());
+    }
+
+    public void subscribeMonitoringEvents(final ActorInstance instance) {
+      instance.registerActionEventSubscriber(new ActorActionEventSubscriber() {
+        private Flow.Subscription subscription;
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+          this.subscription = subscription;
+
+          subscription.request(1);
+        }
+
+        @Override
+        public void onNext(ActorActionEvent item) {
+          log.info("Received action event {}", item);
+
+          actionEvents.add(item);
+
+          subscription.request(1);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+          log.error("Exception caught in monitoring action event subscriber", throwable);
+        }
+
+        @Override
+        public void onComplete() {
+          log.error("Closing the monitoring action event subscriber");
+        }
+      });
+
+      instance.registerSignalEventSubscriber(new ActorSignalEventSubscriber() {
+        private Flow.Subscription subscription;
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+          this.subscription = subscription;
+
+          subscription.request(1);
+        }
+
+        @Override
+        public void onNext(ActorSignalEvent item) {
+          log.info("Received signal event {}", item);
+
+          signalEvents.add(item);
+
+          subscription.request(1);
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+          log.error("Exception caught in monitoring signal event subscriber", throwable);
+        }
+
+        @Override
+        public void onComplete() {
+          log.error("Closing the monitoring signal event subscriber");
+        }
+      });
+    }
   }
 
   @RequiredArgsConstructor
@@ -699,7 +845,6 @@ public class ActorInstanceTest {
       mailbox.stopReceiving();
       this.instanceState = TestInstanceState.STOPPED;
     }
-
 
     @Override
     public ActorInstance parentActor() {

@@ -12,4 +12,5 @@ public class ActorSignalEvent {
   private String actorName;
   private Duration duration;
   private ActorSignalType signal;
+  private ActorOutcomeType outcome;
 }

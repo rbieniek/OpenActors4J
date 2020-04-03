@@ -12,4 +12,5 @@ public class ActorActionEvent {
   private String actorName;
   private Duration duration;
   private ActorActionEventType action;
+  private ActorOutcomeType outcome;
 }
