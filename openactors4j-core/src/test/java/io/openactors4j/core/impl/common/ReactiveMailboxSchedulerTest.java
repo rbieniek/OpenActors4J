@@ -381,6 +381,90 @@ public class ReactiveMailboxSchedulerTest {
             .orElse(0) == 1024 * 1024);
   }
 
+  @Test
+  public void shouldDeliverOneMessageToOneMailboxWithFlowControl() {
+    final TestClient client = TestClient.builder().build();
+    final FlowControlledMailbox<Message<TestData>> mailbox = scheduler.registerMailbox(new UnboundedMailbox<>(), client);
+
+    client.setMailbox(mailbox);
+
+    mailbox.startReceiving();
+    mailbox.processMode(FlowControlledMailbox.ProcessMode.QUEUE);
+
+    mailbox.putMessage(new Message<>(new RoutingSlip(testAddress),
+        testAddress,
+        TestData.builder()
+            .number(1)
+            .build()));
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(0);
+    Assertions.assertThat(client.getPayloads()).isEmpty();
+
+    mailbox.processMode(FlowControlledMailbox.ProcessMode.DELIVER);
+
+    Awaitility.await()
+        .atMost(1, TimeUnit.SECONDS)
+        .until(() -> client.getCounter() == 1);
+
+    Assertions.assertThat(client.getCounter())
+        .isEqualTo(1);
+    Assertions.assertThat(client.getPayloads()).containsExactly(TestData.builder()
+        .number(1)
+        .build());
+  }
+
+  @Test
+  public void shouldDeliverManyMessageToManyMailboxWithFlowControl() {
+    final List<ImmutablePair<TestClient, FlowControlledMailbox<Message<TestData>>>> clients = new LinkedList<>();
+
+    for (int counter = 0; counter < 32; counter++) {
+      final TestClient client = TestClient.builder().build();
+      final FlowControlledMailbox<Message<TestData>> mailbox = scheduler.registerMailbox(new UnboundedMailbox<>(), client);
+
+      client.setMailbox(mailbox);
+
+      mailbox.startReceiving();
+      mailbox.processMode(FlowControlledMailbox.ProcessMode.QUEUE);
+
+      clients.add(ImmutablePair.of(client, mailbox));
+    }
+
+    for (int counter = 0; counter < 32; counter++) {
+      final int value = counter;
+
+      clients.forEach(pair -> {
+        pair.getRight().putMessage(new Message<>(new RoutingSlip(testAddress),
+            testAddress,
+            TestData.builder()
+                .number(value)
+                .build()));
+      });
+    }
+
+    Assertions.assertThat(clients.stream().map(pair -> pair
+        .getLeft()
+        .getCounter())
+        .reduce((a, b) -> a + b)
+        .orElse(0))
+        .isEqualTo(0);
+
+    clients.stream().map(pair -> pair.getRight()).forEach(mailbox -> mailbox.processMode(FlowControlledMailbox.ProcessMode.DELIVER));
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> clients.stream().map(pair -> pair
+            .getLeft()
+            .getCounter())
+            .reduce((a, b) -> a + b)
+            .orElse(0) == 1024);
+
+    clients.forEach(pair -> {
+      Assertions.assertThat(pair.getLeft().getCounter())
+          .isEqualTo(32);
+    });
+  }
+
   @Builder
   @Data
   private static class TestData {

@@ -5,8 +5,10 @@ import io.openactors4j.core.common.MailboxOverflowHandler;
 import io.openactors4j.core.impl.messaging.Message;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
@@ -31,7 +33,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
   }
 
   @Override
-  public Mailbox<Message<T>> registerMailbox(Mailbox<Message<T>> mailbox, MailboxSchedulerClient client) {
+  public FlowControlledMailbox<Message<T>> registerMailbox(Mailbox<Message<T>> mailbox, MailboxSchedulerClient client) {
     final UUID uuid = UUID.randomUUID();
     final WrappedMailbox<T> wrappedMailbox = new WrappedMailbox<>(eventPublisher,
         new SubmissionPublisher<>(executorService, Flow.defaultBufferSize()),
@@ -84,7 +86,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
   }
 
   @RequiredArgsConstructor
-  private static class WrappedMailbox<T> implements Mailbox<Message<T>> {
+  private static class WrappedMailbox<T> implements FlowControlledMailbox<Message<T>> {
     private final SubmissionPublisher<UUID> schedulePublisher;
 
     @Getter
@@ -96,6 +98,8 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     private final MailboxSchedulerClient client;
 
     private MailboxSchedulerSubscriber clientSubscriber;
+    private FlowControlledMailbox.ProcessMode flowMode = ProcessMode.DELIVER;
+    private Queue<UUID> backlog = new ConcurrentLinkedQueue<>();
 
     @Override
     public void startReceiving() {
@@ -126,12 +130,30 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     public void putMessage(Message<T> message) {
       delegate.putMessage(message);
 
-      schedulePublisher.submit(uuid);
+      if(flowMode == ProcessMode.DELIVER) {
+        schedulePublisher.submit(uuid);
+      } else {
+        backlog.add(uuid);
+      }
     }
 
     @Override
     public Optional<Message<T>> takeMessage() {
       return delegate.takeMessage();
+    }
+
+    @Override
+    public void processMode(ProcessMode processMode) {
+      this.flowMode = processMode;
+      clientSubscriber.processMode(processMode);
+
+      if(processMode == ProcessMode.DELIVER) {
+        UUID pollValue;
+
+        while((pollValue = backlog.poll()) != null) {
+          schedulePublisher.submit(pollValue);
+        }
+      }
     }
   }
 
@@ -140,6 +162,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     private final MailboxSchedulerClient client;
 
     private Flow.Subscription subscription;
+    private FlowControlledMailbox.ProcessMode flowMode = FlowControlledMailbox.ProcessMode.DELIVER;
 
     @Override
     public void onSubscribe(Flow.Subscription subscription) {
@@ -150,7 +173,9 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
 
     @Override
     public void onNext(UUID item) {
-      client.takeNextMessage();
+      if(flowMode == FlowControlledMailbox.ProcessMode.DELIVER) {
+        client.takeNextMessage();
+      }
 
       subscription.request(1);
     }
@@ -163,6 +188,10 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     @Override
     public void onComplete() {
 
+    }
+
+    public void processMode(FlowControlledMailbox.ProcessMode processMode) {
+      this.flowMode = processMode;
     }
   }
 }
