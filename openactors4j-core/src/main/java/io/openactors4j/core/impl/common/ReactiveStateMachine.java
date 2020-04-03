@@ -225,11 +225,11 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
       try {
         moveState(item);
-      } catch (Exception e) {
+      } catch (Exception exception) {
         log.error("Exception for machine {} in state transition from state {} to state {}",
             name,
             currentState,
-            item.getState());
+            item.getState(), exception);
       }
 
       subscription.request(1);
@@ -242,7 +242,6 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
     @Override
     public void onComplete() {
-      log.info("Procssing complete for machine {}", name);
       log.info("Procssing complete for machine {}", name);
     }
   }

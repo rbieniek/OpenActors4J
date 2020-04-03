@@ -81,9 +81,11 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.CREATING, InstanceState.CREATE_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.CREATE_FAILED, InstanceState.STOPPED, this::terminateInstance)
         .addState(InstanceState.CREATE_FAILED, InstanceState.CREATING, this::createNewInstance)
-        .addState(InstanceState.STARTING, InstanceState.RUNNING, this::noAction)
+        .addState(InstanceState.CREATE_DELAYED, InstanceState.CREATING, this::createNewInstance)
+        .addState(InstanceState.STARTING, InstanceState.RUNNING, this::enableMessageDelivery)
         .addState(InstanceState.STARTING, InstanceState.START_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.START_FAILED, InstanceState.STOPPING, this::stopInstance)
+        .addState(InstanceState.START_FAILED, InstanceState.STARTING, this::startNewInstance)
         .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.RUNNING, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
@@ -96,6 +98,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         Flow.defaultBufferSize());
 
     context.assignAndCreate(this);
+    context.disableMessageDelivery();
   }
 
   /**
@@ -322,6 +325,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         .whenComplete((value, throwable) -> {
           publishSignalEvent(ActorSignalType.SIGNAL_PRE_START, now, determineOutcome((Throwable) throwable));
           transitionConditionallyOnException((Throwable) throwable,
+            Signal.PRE_START,
             InstanceState.RUNNING, InstanceState.START_FAILED, updater);
         });
   }
@@ -332,6 +336,8 @@ public abstract class ActorInstance<V extends Actor, T> {
                                           final Optional<ActorInstanceTransitionContext> transitionContext) {
     final ActorInstanceTransitionContext ctx = transitionContext
         .orElseThrow(() -> new IllegalArgumentException("Expected transaction context on executing supervision strategy for actor {}" + name));
+
+    context.disableMessageDelivery();
 
     switch (sourceState) {
       case CREATING:
@@ -371,6 +377,22 @@ public abstract class ActorInstance<V extends Actor, T> {
     }, () -> stateMachine.postStateTransition(onSuccessState));
   }
 
+  private void transitionConditionallyOnException(final Throwable throwable,
+                                                  final Signal signal,
+                                                  final InstanceState onSuccessState,
+                                                  final InstanceState onExceptionState,
+                                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater) {
+    Optional.ofNullable(throwable).ifPresentOrElse(toThrow -> {
+      log.info("Actor name {} caught exception while transition from state {}",
+          name, stateMachine.getCurrentState(), throwable);
+
+      stateMachine.postStateTransition(onExceptionState, ActorInstanceTransitionContext.builder()
+          .throwable(toThrow)
+          .signal(signal)
+          .build());
+    }, () -> stateMachine.postStateTransition(onSuccessState));
+  }
+
   private void terminateInstance(final InstanceState sourceState, final InstanceState targetState,
                                  final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                  final Optional<ActorInstanceTransitionContext> transitionContext) {
@@ -392,6 +414,12 @@ public abstract class ActorInstance<V extends Actor, T> {
         });
   }
 
+  private void enableMessageDelivery(final InstanceState sourceState,
+                                     final InstanceState targetState,
+                                     final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                     final Optional<ActorInstanceTransitionContext> transitionContext) {
+    context.enableMessageDelivery();
+  }
 
   private void noAction(final InstanceState fromState, final InstanceState toState,
                         final Optional<ActorInstanceTransitionContext> transitionContext) {

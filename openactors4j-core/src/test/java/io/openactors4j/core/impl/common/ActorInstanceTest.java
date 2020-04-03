@@ -84,7 +84,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
@@ -139,7 +139,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessageAndTerminate() throws InterruptedException {
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessageAndTerminate() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final TestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
@@ -211,7 +211,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldStopOnCreationFailingActorWithImmediateSupervisionStrategy() throws InterruptedException {
+  public void shouldStopOnCreationFailingActorWithImmediateSupervisionStrategy() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(
         FailedCreationTestActor::new,
@@ -241,7 +241,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldStopOnCreationFailingActorWithDelayedSupervisionStrategy() throws InterruptedException {
+  public void shouldStopOnCreationFailingActorWithDelayedSupervisionStrategy() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final WorkingTestActorInstance<FailedCreationTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(
         FailedCreationTestActor::new,
@@ -279,7 +279,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateAndRecreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
+  public void shouldCreateAndRecreateStartedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final TestActorInstance<Actor, Integer> actorInstance = new WorkingTestActorInstance(SwitchingActorSupplier.builder()
         .supplier(FailedCreationTestActor::new)
@@ -326,89 +326,128 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
   }
 
-  /*
   @Test
-  public void shouldCreateRestartingDelayedFailingSignalActorWithImmediateStartAndImmediateSupervision() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final SignalHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new SignalHandlingFailureTestActorInstance<>(actorInstanceContext,
-        WorkingTestActor::new,
+  public void shouldCreateRestartingDelayedFailingSignalActorWithImmediateStartAndImmediateSupervision() {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final SignalHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new SignalHandlingFailureTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE,
         Signal.PRE_START);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
-    actorInstanceContext.assignAndCreate(actorInstance);
+    actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
 
-    Thread.sleep(100);
-    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
-    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+    Awaitility.await()
+        .atMost(10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
+
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getReceivedSignals())
+        .containsExactly(Signal.PRE_START, Signal.PRE_START, Signal.POST_STOP);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
-        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorSignalType.SIGNAL_POST_STOP, ActorOutcomeType.SUCCESS));
   }
 
   @Test
-  public void shouldCreateRestartingDelayedFailingSignalActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final SignalHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new SignalHandlingFailureTestActorInstance<>(actorInstanceContext,
-        WorkingTestActor::new,
+  public void shouldCreateRestartingDelayedFailingSignalActorWithImmediateStartAndImmediateSupervisionAndMessage() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final SignalHandlingFailureTestActorInstance<WorkingTestActor, Integer> actorInstance = new SignalHandlingFailureTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE,
         Signal.PRE_START);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndCreate(actorInstance);
-
-    Thread.sleep(100);
-    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RESTARTING_DELAYED);
-    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
-    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
-    assertThat(actorInstanceContext.getInstanceState())
-        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+    actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
-    Thread.sleep(100);
-    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
-    assertThat(actorInstance.getPayloads()).containsExactly(1);
-    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.PRE_RESTART);
-    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
-    assertThat(actorInstanceContext.getInstanceState())
-        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
-  }
+    Awaitility.await()
+        .atMost(10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
 
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getReceivedSignals())
+        .containsExactly(Signal.PRE_START, Signal.PRE_START, Signal.POST_STOP);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorSignalType.SIGNAL_POST_STOP, ActorOutcomeType.SUCCESS));
+    assertThat(actorInstance.getPayloads()).isEmpty();
+  }
 
   @Test
   public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final WorkingTestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(actorInstanceContext,
-        WorkingTestActor::new,
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final WorkingTestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.DELAYED);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
-    actorInstanceContext.assignAndCreate(actorInstance);
+    actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
 
-    Thread.sleep(100);
-    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.DELAYED);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.CREATE_DELAYED);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.CREATE_DELAYED);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).isEmpty();
 
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
-    Thread.sleep(100);
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getActionEvents().size() > 1);
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.SUCCESS));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
   }
 
+  /*
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
@@ -819,7 +858,7 @@ public class ActorInstanceTest {
 
     private ActorInstance<? extends Actor, T> actorInstance;
 
-    private Mailbox<Message<T>> mailbox;
+    private FlowControlledMailbox<Message<T>> mailbox;
 
     @Override
     public ExecutorService provideMonitoringExecutor() {
@@ -886,6 +925,17 @@ public class ActorInstanceTest {
     public ActorRef actorRefForAddress(SystemAddress address) {
       return null;
     }
+
+    @Override
+    public void enableMessageDelivery() {
+      mailbox.processMode(FlowControlledMailbox.ProcessMode.DELIVER);
+    }
+
+    @Override
+    public void disableMessageDelivery() {
+      mailbox.processMode(FlowControlledMailbox.ProcessMode.QUEUE);
+    }
+
   }
 
   private static class TestActorInstance<V extends Actor, T> extends ActorInstance<V, T> {

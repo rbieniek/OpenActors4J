@@ -25,6 +25,16 @@ public interface ActorInstanceContext<T> {
   void enqueueMessage(Message<T> message);
 
   /**
+   * Enable message delivery to the actor instance
+   */
+  void enableMessageDelivery();
+
+  /**
+   * disable message delivery to the acton instance
+   */
+  void disableMessageDelivery();
+
+  /**
    * The calling actor implementation needs to give an unrouteable message back to the
    * actor system.
    *
