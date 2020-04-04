@@ -89,6 +89,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.RUNNING, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.PROCESSING_FAILED, InstanceState.RESTARTING, this::restartInstance)
+        .addState(InstanceState.PROCESSING_FAILED, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.RESTARTING, InstanceState.RESTART_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.RESTART_FAILED, InstanceState.STOPPING, this::stopInstance)
         .addState(InstanceState.RESTART_FAILED, InstanceState.RESTARTING, this::restartInstance)
@@ -247,12 +248,12 @@ public abstract class ActorInstance<V extends Actor, T> {
       sendMessageToActor(message);
 
       publishActionEvent(ActorActionEventType.MESSAGE_DELIVERY, now, ActorOutcomeType.SUCCESS);
-    } catch (Exception e) {
-      log.info("Actor {} caught exception in message processing", name, e);
+    } catch (Exception exception) {
+      log.info("Actor {} caught exception in message processing", name, exception);
 
-      supervisionStrategy.handleMessageProcessingException(e,
-          weakReference(),
-          context);
+      stateMachine.postStateTransition(InstanceState.PROCESSING_FAILED, ActorInstanceTransitionContext.builder()
+          .throwable(exception)
+          .build());
       publishActionEvent(ActorActionEventType.MESSAGE_DELIVERY, now, ActorOutcomeType.FAILURE);
     } finally {
       actorContext.setCurrentSender(null);
@@ -367,6 +368,12 @@ public abstract class ActorInstance<V extends Actor, T> {
             getContext());
         break;
       case STARTING:
+        supervisionStrategy.handleSignalProcessingException(ctx.getThrowable(),
+            ctx.getSignal(),
+            weakReference(),
+            getContext());
+        break;
+      case RESTARTING:
         supervisionStrategy.handleSignalProcessingException(ctx.getThrowable(),
             ctx.getSignal(),
             weakReference(),

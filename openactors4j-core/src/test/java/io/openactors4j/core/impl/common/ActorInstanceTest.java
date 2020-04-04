@@ -385,7 +385,6 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
     assertThat(actorInstance.getReceivedSignals())
         .containsExactly(Signal.PRE_START, Signal.PRE_START, Signal.POST_STOP);
-    assertThat(actorInstanceContext.getUndeliverableMessages()).hasSize(1);
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
     assertThat(actorInstance.getPayloads()).isEmpty();
@@ -403,7 +402,7 @@ public class ActorInstanceTest {
   }
 
   @Test
-  public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() throws InterruptedException {
+  public void shouldCreateDelayedActorWithImmediateStartAndImmediateSupervisionAndProcessedMessage() {
     final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
     final WorkingTestActorInstance<WorkingTestActor, Integer> actorInstance = new WorkingTestActorInstance<>(WorkingTestActor::new,
         "test",
@@ -447,21 +446,24 @@ public class ActorInstanceTest {
         .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS));
   }
 
-  /*
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndFailedMessage() throws InterruptedException {
-    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>();
-    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(actorInstanceContext,
-        WorkingTestActor::new,
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(WorkingTestActor::new,
         "test",
         new ImmediateRestartSupervisionStrategy(1),
         StartupMode.IMMEDIATE);
     final RoutingSlip targetSlip = new RoutingSlip(testAddress);
 
-    actorInstanceContext.assignAndCreate(actorInstance);
-    assertThat(actorInstance.getPayloads()).isEmpty();
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
 
-    Thread.sleep(100);
+    actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
+
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).isEmpty();
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
@@ -469,15 +471,92 @@ public class ActorInstanceTest {
     targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
-    Thread.sleep(100);
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getReceivedSignals().contains(Signal.PRE_RESTART));
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START, Signal.PRE_RESTART);
     assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
     assertThat(actorInstanceContext.getInstanceState())
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getActionEvents().size() > 1);
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.FAILURE));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_RESTART, ActorOutcomeType.SUCCESS) );
   }
 
+  @Test
+  public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndTwoFailedMessage() throws InterruptedException {
+    final TestActorInstanceContext<Integer> actorInstanceContext = new TestActorInstanceContext<>(scheduler);
+    final TestActorInstance<WorkingTestActor, Integer> actorInstance = new MessageHandlingFailureTestActorInstance<>(WorkingTestActor::new,
+        "test",
+        new ImmediateRestartSupervisionStrategy(1),
+        StartupMode.IMMEDIATE);
+    final RoutingSlip targetSlip = new RoutingSlip(testAddress);
+
+    final TestMonitoringEventRecorder recorder = new TestMonitoringEventRecorder();
+
+    actorInstance.initializeAndStart(actorInstanceContext);
+    recorder.subscribeMonitoringEvents(actorInstance);
+
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.RUNNING);
+
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).isEmpty();
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getReceivedSignals().contains(Signal.PRE_RESTART));
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
+    assertThat(actorInstance.getPayloads()).containsExactly(1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START,
+        Signal.PRE_RESTART);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
+
+    targetSlip.nextPathPart(); // skip over path part '/test' to complete routing in tested actor instance
+    actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
+    assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
+    assertThat(actorInstance.getPayloads()).containsExactly(1, 1);
+    assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START,
+        Signal.PRE_RESTART,
+        Signal.POST_STOP);
+    assertThat(actorInstanceContext.getUndeliverableMessages()).isEmpty();
+    assertThat(actorInstanceContext.getInstanceState())
+        .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
+
+    Awaitility.await()
+        .atMost( 10, TimeUnit.SECONDS)
+        .until(() -> recorder.getActionEvents().size() > 1);
+    assertThat(recorder.getActionEventTypes())
+        .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.FAILURE),
+            ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.FAILURE));
+    assertThat(recorder.getSignalEventTypes())
+        .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_RESTART, ActorOutcomeType.SUCCESS),
+            ImmutablePair.of(ActorSignalType.SIGNAL_POST_STOP, ActorOutcomeType.SUCCESS));
+  }
+
+  /*
   @Test
   public void shouldCreateStartedActorWithImmediateStartAndImmediateSupervisionAndDeathNote() throws InterruptedException {
     final TestActorInstanceContext<Object> actorInstanceContext = new TestActorInstanceContext<>();
