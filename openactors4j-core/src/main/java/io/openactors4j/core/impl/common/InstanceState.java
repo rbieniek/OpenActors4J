@@ -15,7 +15,7 @@ public enum InstanceState {
   RUNNING,
   PROCESSING_FAILED,
   RESTARTING,
-  RESTARTING_FAILED,
+  RESTART_FAILED,
   STOPPING,
   STOPPED;
 
@@ -29,7 +29,7 @@ public enum InstanceState {
     monitoringMap.put(RUNNING, ActorStateEventType.ACTOR_RUNNING);
     monitoringMap.put(PROCESSING_FAILED, ActorStateEventType.ACTOR_PROCESSING_FAILED);
     monitoringMap.put(RESTARTING, ActorStateEventType.ACTOR_RESTARTING_FAILED);
-    monitoringMap.put(RESTARTING_FAILED, ActorStateEventType.ACTOR_RESTARTING_FAILED);
+    monitoringMap.put(RESTART_FAILED, ActorStateEventType.ACTOR_RESTARTING_FAILED);
     monitoringMap.put(STOPPED, ActorStateEventType.ACTOR_STOPPED);
   }
 

@@ -35,7 +35,7 @@ public class ActorInstanceStateMachine extends ReactiveStateMachine<InstanceStat
     receptionEnabled.put(InstanceState.RUNNING, true);
     receptionEnabled.put(InstanceState.PROCESSING_FAILED, true);
     receptionEnabled.put(InstanceState.RESTARTING, true);
-    receptionEnabled.put(InstanceState.RESTARTING_FAILED, true);
+    receptionEnabled.put(InstanceState.RESTART_FAILED, true);
     receptionEnabled.put(InstanceState.CREATING, true);
     receptionEnabled.put(InstanceState.CREATING, true);
     receptionEnabled.put(InstanceState.STOPPING, false);

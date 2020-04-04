@@ -88,6 +88,11 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.START_FAILED, InstanceState.STARTING, this::startNewInstance)
         .addState(InstanceState.RUNNING, InstanceState.PROCESSING_FAILED, this::executeSupervisionStrategy)
         .addState(InstanceState.RUNNING, InstanceState.STOPPING, this::stopInstance)
+        .addState(InstanceState.PROCESSING_FAILED, InstanceState.RESTARTING, this::restartInstance)
+        .addState(InstanceState.RESTARTING, InstanceState.RESTART_FAILED, this::executeSupervisionStrategy)
+        .addState(InstanceState.RESTART_FAILED, InstanceState.STOPPING, this::stopInstance)
+        .addState(InstanceState.RESTART_FAILED, InstanceState.RESTARTING, this::restartInstance)
+        .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::enableMessageDelivery)
         .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
         .setDefaultAction(this::noAction)
         .start(InstanceState.NEW);
@@ -327,6 +332,22 @@ public abstract class ActorInstance<V extends Actor, T> {
           transitionConditionallyOnException((Throwable) throwable,
             Signal.PRE_START,
             InstanceState.RUNNING, InstanceState.START_FAILED, updater);
+        });
+  }
+
+  @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
+  private void restartInstance(final InstanceState sourceState,
+                                final InstanceState targetState,
+                                final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                                final Optional<ActorInstanceTransitionContext> transitionContext) {
+    final ZonedDateTime now = ZonedDateTime.now().now();
+
+    context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
+        .whenComplete((value, throwable) -> {
+          publishSignalEvent(ActorSignalType.SIGNAL_PRE_RESTART, now, determineOutcome((Throwable) throwable));
+          transitionConditionallyOnException((Throwable) throwable,
+              Signal.PRE_RESTART,
+              InstanceState.RUNNING, InstanceState.RESTART_FAILED, updater);
         });
   }
 
