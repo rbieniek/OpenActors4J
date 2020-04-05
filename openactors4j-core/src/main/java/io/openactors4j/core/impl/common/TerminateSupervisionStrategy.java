@@ -8,14 +8,14 @@ public class TerminateSupervisionStrategy implements SupervisionStrategyInternal
   public void handleMessageProcessingException(final Throwable processingException,
                                                final ActorInstanceStateTransition transition,
                                                final ActorInstanceContext context) {
-    transition.equals(InstanceState.STOPPING);
+    transition.transitionState(InstanceState.STOPPING);
   }
 
   @Override
   public void handleActorCreationException(final Throwable signalThrowable,
                                            final ActorInstanceStateTransition transition,
                                            final ActorInstanceContext context) {
-    transition.equals(InstanceState.STOPPING);
+    transition.transitionState(InstanceState.STOPPED);
   }
 
   @Override
@@ -23,7 +23,7 @@ public class TerminateSupervisionStrategy implements SupervisionStrategyInternal
                                               final Signal signal,
                                               final ActorInstanceStateTransition transition,
                                               final ActorInstanceContext context) {
-    transition.equals(InstanceState.STOPPING);
+    transition.transitionState(InstanceState.STOPPING);
   }
 
 }

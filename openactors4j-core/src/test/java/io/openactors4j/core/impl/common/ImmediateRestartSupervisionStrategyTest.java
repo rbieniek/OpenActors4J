@@ -183,8 +183,8 @@ public class ImmediateRestartSupervisionStrategyTest {
     Mockito.verify(transition, Mockito.times(1))
         .transitionState(InstanceState.STARTING);
     Mockito.verify(transition, Mockito.times(1))
-        .transitionState(InstanceState.STOPPED);
-    EnumSet.complementOf(EnumSet.of(InstanceState.STARTING, InstanceState.STOPPED))
+        .transitionState(InstanceState.STOPPING);
+    EnumSet.complementOf(EnumSet.of(InstanceState.STARTING, InstanceState.STOPPING))
         .forEach(state -> Mockito.verify(transition, Mockito.never()).transitionState(state));
   }
 
@@ -210,8 +210,8 @@ public class ImmediateRestartSupervisionStrategyTest {
     Mockito.verify(transition, Mockito.times(1))
         .transitionState(InstanceState.RESTARTING);
     Mockito.verify(transition, Mockito.times(1))
-        .transitionState(InstanceState.STOPPED);
-    EnumSet.complementOf(EnumSet.of(InstanceState.RESTARTING, InstanceState.STOPPED))
+        .transitionState(InstanceState.STOPPING);
+    EnumSet.complementOf(EnumSet.of(InstanceState.RESTARTING, InstanceState.STOPPING))
         .forEach(state -> Mockito.verify(transition, Mockito.never()).transitionState(state));
 
   }

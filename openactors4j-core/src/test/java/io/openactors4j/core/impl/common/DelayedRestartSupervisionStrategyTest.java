@@ -161,8 +161,8 @@ public class DelayedRestartSupervisionStrategyTest {
     Thread.sleep(1100L);
 
     verify(transition, times(1))
-        .transitionState(InstanceState.STARTING);
-    complementOf(of(InstanceState.STARTING))
+        .transitionState(InstanceState.RESTARTING);
+    complementOf(of(InstanceState.RESTARTING))
         .forEach(state -> verify(transition, never()).transitionState(state));
 
     strategy.handleSignalProcessingException(new Exception(),
@@ -171,15 +171,15 @@ public class DelayedRestartSupervisionStrategyTest {
         actorInstanceContext);
 
     verify(transition, times(1))
-        .transitionState(InstanceState.STARTING);
-    complementOf(of(InstanceState.STARTING))
+        .transitionState(InstanceState.RESTARTING);
+    complementOf(of(InstanceState.RESTARTING))
         .forEach(state -> verify(transition, never()).transitionState(state));
 
     Thread.sleep(1100L);
 
     verify(transition, times(2))
-        .transitionState(InstanceState.STARTING);
-    complementOf(of(InstanceState.STARTING))
+        .transitionState(InstanceState.RESTARTING);
+    complementOf(of(InstanceState.RESTARTING))
         .forEach(state -> verify(transition, never()).transitionState(state));
 
   }

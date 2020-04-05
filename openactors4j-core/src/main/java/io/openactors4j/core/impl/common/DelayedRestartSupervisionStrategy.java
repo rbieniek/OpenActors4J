@@ -41,7 +41,7 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
   public void handleMessageProcessingException(final Throwable processingException,
                                                final ActorInstanceStateTransition transition,
                                                final ActorInstanceContext context) {
-    handleExceptionInternal(transition, InstanceState.RESTARTING);
+    handleExceptionInternal(transition, InstanceState.RESTARTING, InstanceState.STOPPING);
   }
 
   @Override
@@ -49,20 +49,21 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
                                               final Signal signal,
                                               final ActorInstanceStateTransition transition,
                                               final ActorInstanceContext context) {
-    handleExceptionInternal(transition, determineStateFromSignal(signal));
+    handleExceptionInternal(transition, determineStateFromSignal(signal), InstanceState.STOPPING);
   }
 
   @Override
   public void handleActorCreationException(final Throwable signalThrowable,
                                            final ActorInstanceStateTransition transition,
                                            final ActorInstanceContext context) {
-    handleExceptionInternal(transition, InstanceState.CREATING);
+    handleExceptionInternal(transition, InstanceState.CREATING, InstanceState.STOPPED);
   }
 
   private void handleExceptionInternal(final ActorInstanceStateTransition transition,
-                                       final InstanceState wakeupState) {
+                                       final InstanceState wakeupState,
+                                       final InstanceState terminalState) {
     final Optional<InstanceState> instanceState = incrementAndCheckRetryCounter(Optional.of(maxRestarts)
-        .filter(value -> value > 0));
+        .filter(value -> value > 0), terminalState);
 
     instanceState.ifPresentOrElse(state -> transition.transitionState(state),
         () -> CompletableFuture.delayedExecutor(calculateRestartPeriod().toMillis(),
@@ -76,10 +77,11 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
         }));
   }
 
-  private Optional<InstanceState> incrementAndCheckRetryCounter(final Optional<Integer> maxRetries) {
+  private Optional<InstanceState> incrementAndCheckRetryCounter(final Optional<Integer> maxRetries,
+                                                                final InstanceState terminalState) {
     return maxRetries
         .filter(value -> value < retryCounter.incrementAndGet())
-        .map(value -> InstanceState.STOPPED);
+        .map(value -> terminalState);
   }
 
   private Duration calculateRestartPeriod() {
@@ -91,6 +93,6 @@ public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInt
 
 
   private InstanceState determineStateFromSignal(final Signal signal) {
-    return Optional.ofNullable(SIGNAL_STATE_MAP.get(signal)).orElse(InstanceState.STOPPED);
+    return Optional.ofNullable(SIGNAL_STATE_MAP.get(signal)).orElse(InstanceState.STOPPING);
   }
 }
