@@ -59,9 +59,9 @@ public class ActorInstanceStateMachineTest {
 
     Assertions.assertThat(subscriber.getEvents())
         .containsExactly(ActorStateEvent.builder()
-            .actorName("test")
-            .event(ActorStateEventType.ACTOR_CREATING)
-            .build(),
+                .actorName("test")
+                .event(ActorStateEventType.ACTOR_CREATING)
+                .build(),
             ActorStateEvent.builder()
                 .actorName("test")
                 .event(ActorStateEventType.ACTOR_STARTING)
@@ -72,17 +72,17 @@ public class ActorInstanceStateMachineTest {
                                  final InstanceState targetState,
                                  final ReactiveStateMachine.ReactiveStateUpdater<InstanceState, ActorInstanceStateMachine.ActorInstanceTransitionContext> updater,
                                  final Optional<ActorInstanceStateMachine.ActorInstanceTransitionContext> transitionContext) {
-    CompletableFuture.runAsync(()-> updater.postStateTransition(InstanceState.STARTING, null),
+    CompletableFuture.runAsync(() -> updater.postStateTransition(InstanceState.STARTING, null),
         CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS, executorService));
   }
 
   private void startInstance(final InstanceState sourceState,
-                                 final InstanceState targetState,
-                                 final ReactiveStateMachine.ReactiveStateUpdater<InstanceState, ActorInstanceStateMachine.ActorInstanceTransitionContext> updater,
-                                 final Optional<ActorInstanceStateMachine.ActorInstanceTransitionContext> transitionContext) {
+                             final InstanceState targetState,
+                             final ReactiveStateMachine.ReactiveStateUpdater<InstanceState, ActorInstanceStateMachine.ActorInstanceTransitionContext> updater,
+                             final Optional<ActorInstanceStateMachine.ActorInstanceTransitionContext> transitionContext) {
   }
 
-  private static class TestMonitoringSubscriber implements ActorStateEventSubscriber  {
+  private static class TestMonitoringSubscriber implements ActorStateEventSubscriber {
     @Getter
     private final List<ActorStateEvent> events = new LinkedList<>();
 
@@ -90,9 +90,9 @@ public class ActorInstanceStateMachineTest {
 
     @Override
     public void onSubscribe(Flow.Subscription subscription) {
-        this.subscription = subscription;
+      this.subscription = subscription;
 
-        subscription.request(1);
+      subscription.request(1);
     }
 
     @Override

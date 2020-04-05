@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class DelayedRestartSupervisionStrategy implements SupervisionStrategyInternal {
-  private static Map<Signal, InstanceState> SIGNAL_STATE_MAP = new ConcurrentHashMap<>();
+  private static final Map<Signal, InstanceState> SIGNAL_STATE_MAP = new ConcurrentHashMap<>();
 
   static {
     SIGNAL_STATE_MAP.put(Signal.PRE_START, InstanceState.STARTING);

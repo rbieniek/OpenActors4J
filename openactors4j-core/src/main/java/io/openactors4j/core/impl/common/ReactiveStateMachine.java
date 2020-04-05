@@ -1,7 +1,5 @@
 package io.openactors4j.core.impl.common;
 
-import io.openactors4j.core.monitoring.ActorStateEvent;
-import io.openactors4j.core.monitoring.ActorStateEventSubscriber;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +20,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
  * @param <T> the event type the state machine acts upon
  */
 @Slf4j
+@SuppressWarnings("PMD.TooManyMethods")
 public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTransitionContext> {
 
   private final Map<ImmutablePair<T, T>,
@@ -107,7 +106,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
     shutdownHook();
   }
 
-  public ReactiveStateMachine<T, V> setDefaultAction(final @NonNull ReactiveStateDefaultTransitionAction<T, V> defaultAction) {
+  public ReactiveStateMachine<T, V> assignDefaultAction(final @NonNull ReactiveStateDefaultTransitionAction<T, V> defaultAction) {
     this.defaultAction = defaultAction;
 
     return this;
@@ -162,6 +161,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
         .build());
   }
 
+  @SuppressWarnings("PMD.UnusedFormalParameter")
   private void nothing(final T sourceState,
                        final T targetState,
                        final Optional<V> context) {
@@ -170,15 +170,11 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
   }
 
   private ReactiveStateTransitionAction<T, V> wrapDefaultAction() {
-    return new ReactiveStateTransitionAction<T, V>() {
-      @Override
-      public void accept(T sourceState, T targetState, ReactiveStateUpdater<T, V> stateUpdater, Optional<V> transitionContext) {
-        defaultAction.accept(sourceState, targetState, transitionContext);
-      }
-    };
+    return (sourceState, targetState, stateUpdater,
+            transitionContext) -> defaultAction.accept(sourceState, targetState, transitionContext);
   }
 
-  private void moveState(QueuedStateTransition<T, V> stateTransition) {
+  private void moveState(final QueuedStateTransition<T, V> stateTransition) {
     final T nextState = stateTransition.getState();
 
     log.info("Move state machine {} from state {} to state {}", name, currentState, nextState);
@@ -207,20 +203,22 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
 
   }
 
-  protected void shutdownHook() {}
+  protected void shutdownHook() {
+  }
 
   private class ReactiveStateSubscriber implements Flow.Subscriber<QueuedStateTransition<T, V>> {
     private Flow.Subscription subscription;
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(final Flow.Subscription subscription) {
       this.subscription = subscription;
 
       subscription.request(1);
     }
 
     @Override
-    public void onNext(QueuedStateTransition<T, V> item) {
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    public void onNext(final QueuedStateTransition<T, V> item) {
       final T currentState = getCurrentState();
 
       try {
@@ -236,7 +234,7 @@ public class ReactiveStateMachine<T, V extends ReactiveStateMachine.ReactiveTran
     }
 
     @Override
-    public void onError(Throwable throwable) {
+    public void onError(final Throwable throwable) {
 
     }
 

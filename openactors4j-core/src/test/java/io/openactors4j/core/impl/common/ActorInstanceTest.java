@@ -7,7 +7,6 @@ import io.openactors4j.core.common.Actor;
 import io.openactors4j.core.common.ActorContext;
 import io.openactors4j.core.common.ActorRef;
 import io.openactors4j.core.common.DeathNote;
-import io.openactors4j.core.common.Mailbox;
 import io.openactors4j.core.common.NotImplementedException;
 import io.openactors4j.core.common.Signal;
 import io.openactors4j.core.common.StartupMode;
@@ -108,7 +107,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
@@ -129,7 +128,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
@@ -161,7 +160,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
@@ -182,7 +181,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
@@ -203,7 +202,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getSignalEventTypes().size() > 1);
     assertThat(recorder.getSignalEventTypes())
         .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS),
@@ -233,7 +232,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
@@ -271,7 +270,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
@@ -304,7 +303,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getReceivedSignals()).containsExactly(Signal.PRE_START);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.FAILURE),
@@ -351,7 +350,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
@@ -390,7 +389,7 @@ public class ActorInstanceTest {
     assertThat(actorInstance.getPayloads()).isEmpty();
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> !recorder.getActionEvents().isEmpty() && !recorder.getSignalEvents().isEmpty());
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS));
@@ -437,7 +436,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
@@ -472,7 +471,7 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> actorInstance.getReceivedSignals().contains(Signal.PRE_RESTART));
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
@@ -482,14 +481,14 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.ACTIVE);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
             ImmutablePair.of(ActorActionEventType.MESSAGE_DELIVERY, ActorOutcomeType.FAILURE));
     assertThat(recorder.getSignalEventTypes())
         .containsExactly(ImmutablePair.of(ActorSignalType.SIGNAL_PRE_START, ActorOutcomeType.SUCCESS),
-            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_RESTART, ActorOutcomeType.SUCCESS) );
+            ImmutablePair.of(ActorSignalType.SIGNAL_PRE_RESTART, ActorOutcomeType.SUCCESS));
   }
 
   @Test
@@ -518,7 +517,7 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> actorInstance.getReceivedSignals().contains(Signal.PRE_RESTART));
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
@@ -532,7 +531,7 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
     assertThat(actorInstance.getPayloads()).containsExactly(1, 1);
@@ -544,7 +543,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
@@ -583,7 +582,7 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> actorInstance.getInstanceState() == InstanceState.STOPPED);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.STOPPED);
     assertThat(actorInstance.getPayloads()).containsExactly(1);
@@ -595,7 +594,7 @@ public class ActorInstanceTest {
         .isEqualTo(TestActorInstanceContext.TestInstanceState.STOPPED);
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(recorder.getActionEventTypes())
         .containsExactly(ImmutablePair.of(ActorActionEventType.CREATE_INSTANCE, ActorOutcomeType.SUCCESS),
@@ -633,7 +632,7 @@ public class ActorInstanceTest {
     actorInstance.routeMessage(new Message<>(targetSlip, sourceAddress, 1));
 
     Awaitility.await()
-        .atMost( 10, TimeUnit.SECONDS)
+        .atMost(10, TimeUnit.SECONDS)
         .until(() -> recorder.getActionEvents().size() > 1);
     assertThat(actorInstance.getInstanceState()).isEqualTo(InstanceState.RUNNING);
     assertThat(recorder.getActionEventTypes())
@@ -917,10 +916,10 @@ public class ActorInstanceTest {
     private final List<Signal> failingSignals = new LinkedList<>();
 
     public MessageHandlingAndSignalFailureTestActorInstance(final Callable<V> supplier,
-                                                   final String name,
-                                                   final SupervisionStrategyInternal supervisionStrategy,
-                                                   final StartupMode startupMode,
-                                                   final Signal failingSignal) {
+                                                            final String name,
+                                                            final SupervisionStrategyInternal supervisionStrategy,
+                                                            final StartupMode startupMode,
+                                                            final Signal failingSignal) {
       super(supplier, name, supervisionStrategy, startupMode);
 
       this.failingSignals.add(failingSignal);

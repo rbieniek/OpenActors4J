@@ -43,7 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter(AccessLevel.PROTECTED)
 @Slf4j
-@SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter", "TooManyStaticImports"})
+@SuppressWarnings( {"PMD.TooManyMethods", "PMD.UnusedFormalParameter", "TooManyStaticImports",
+    "PMD.ExcessiveImports"})
 public abstract class ActorInstance<V extends Actor, T> {
 
   private final Callable<V> instanceSupplier;
@@ -95,7 +96,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         .addState(InstanceState.RESTART_FAILED, InstanceState.RESTARTING, this::restartInstance)
         .addState(InstanceState.RESTARTING, InstanceState.RUNNING, this::enableMessageDelivery)
         .addState(InstanceState.STOPPING, InstanceState.STOPPED, this::terminateInstance)
-        .setDefaultAction(this::noAction)
+        .assignDefaultAction(this::noAction)
         .start(InstanceState.NEW);
 
     monitoringActionPublisher = new SubmissionPublisher<>(context.provideMonitoringExecutor(),
@@ -175,6 +176,7 @@ public abstract class ActorInstance<V extends Actor, T> {
    *
    * @param message the message to be routed
    */
+  @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
   public void routeMessage(final Message<T> message) {
     final Optional<String> currentPart = message.getTarget().nextPathPart();
 
@@ -284,7 +286,7 @@ public abstract class ActorInstance<V extends Actor, T> {
   private WeakActorInstanceStateTransition weakReference() {
     return new WeakActorInstanceStateTransition(new ActorInstanceStateTransition() {
       @Override
-      public void transitionState(InstanceState desiredState) {
+      public void transitionState(final InstanceState desiredState) {
         stateMachine.postStateTransition(desiredState);
       }
 
@@ -331,16 +333,16 @@ public abstract class ActorInstance<V extends Actor, T> {
         .whenComplete((value, throwable) -> {
           publishSignalEvent(ActorSignalType.SIGNAL_PRE_START, now, determineOutcome((Throwable) throwable));
           transitionConditionallyOnException((Throwable) throwable,
-            Signal.PRE_START,
-            InstanceState.RUNNING, InstanceState.START_FAILED, updater);
+              Signal.PRE_START,
+              InstanceState.RUNNING, InstanceState.START_FAILED, updater);
         });
   }
 
   @SuppressWarnings( {"PMD.AvoidFinalLocalVariable"})
   private void restartInstance(final InstanceState sourceState,
-                                final InstanceState targetState,
-                                final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
-                                final Optional<ActorInstanceTransitionContext> transitionContext) {
+                               final InstanceState targetState,
+                               final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                               final Optional<ActorInstanceTransitionContext> transitionContext) {
     final ZonedDateTime now = ZonedDateTime.now().now();
 
     context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
@@ -352,6 +354,7 @@ public abstract class ActorInstance<V extends Actor, T> {
         });
   }
 
+  @SuppressWarnings("PMD.DataflowAnomalyAnalysis")
   private void executeSupervisionStrategy(final InstanceState sourceState,
                                           final InstanceState targetState,
                                           final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
@@ -395,7 +398,7 @@ public abstract class ActorInstance<V extends Actor, T> {
                                                   final InstanceState onSuccessState,
                                                   final InstanceState onExceptionState,
                                                   final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater) {
-    Optional.ofNullable(throwable).ifPresentOrElse(toThrow -> {
+    ofNullable(throwable).ifPresentOrElse(toThrow -> {
       log.info("Actor name {} caught exception while transition from state {}",
           name, stateMachine.getCurrentState(), throwable);
 
@@ -410,7 +413,7 @@ public abstract class ActorInstance<V extends Actor, T> {
                                                   final InstanceState onSuccessState,
                                                   final InstanceState onExceptionState,
                                                   final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater) {
-    Optional.ofNullable(throwable).ifPresentOrElse(toThrow -> {
+    ofNullable(throwable).ifPresentOrElse(toThrow -> {
       log.info("Actor name {} caught exception while transition from state {}",
           name, stateMachine.getCurrentState(), throwable);
 
@@ -449,23 +452,20 @@ public abstract class ActorInstance<V extends Actor, T> {
     context.enableMessageDelivery();
   }
 
+  @SuppressWarnings("PMD.EmptyMethodInAbstractClassShouldBeAbstract")
   private void noAction(final InstanceState fromState, final InstanceState toState,
-                        final Optional<ActorInstanceTransitionContext> transitionContext) {
+                              final Optional<ActorInstanceTransitionContext> transitionContext) {
   }
 
   private void noAction(final InstanceState fromState, final InstanceState toState,
-                        final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
-                        final Optional<ActorInstanceTransitionContext> transitionContext) {
+                              final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
+                              final Optional<ActorInstanceTransitionContext> transitionContext) {
     updater.postStateTransition(toState, transitionContext.orElse(null));
   }
 
-  private void shift(final InstanceState fromState, final InstanceState toState,
-                     final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
-                     final Optional<ActorInstanceTransitionContext> transitionContext) {
-    updater.postStateTransition(toState, transitionContext.orElse(null));
-  }
-
-  private void publishActionEvent(ActorActionEventType eventType, ZonedDateTime beginAction, ActorOutcomeType outcome) {
+  private void publishActionEvent(final ActorActionEventType eventType,
+                                  final ZonedDateTime beginAction,
+                                  final ActorOutcomeType outcome) {
     log.info("actor {} publish action event {} with outcome {} at {}",
         name, eventType, outcome, beginAction);
 
@@ -479,7 +479,9 @@ public abstract class ActorInstance<V extends Actor, T> {
     }
   }
 
-  private void publishSignalEvent(ActorSignalType eventType, ZonedDateTime beginAction, ActorOutcomeType outcome) {
+  private void publishSignalEvent(final ActorSignalType eventType,
+                                  final ZonedDateTime beginAction,
+                                  final ActorOutcomeType outcome) {
     log.info("actor {} publish signal event {} with outcome {} at {}",
         name, eventType, outcome, beginAction);
 
@@ -493,8 +495,9 @@ public abstract class ActorInstance<V extends Actor, T> {
     }
   }
 
+  @SuppressWarnings("PMD.OnlyOneReturn")
   private ActorOutcomeType determineOutcome(final Throwable throwable) {
-    if(throwable != null) {
+    if (throwable != null) {
       return ActorOutcomeType.FAILURE;
     }
 

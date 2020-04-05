@@ -242,7 +242,7 @@ public class ReactiveStateMachineTest {
 
   @Test
   public void shouldNotMoveToUnknownState() throws InterruptedException {
-    rsm.setDefaultAction((ReactiveStateMachine.ReactiveStateDefaultTransitionAction<States, TestData>) methods::dontMove);
+    rsm.assignDefaultAction((ReactiveStateMachine.ReactiveStateDefaultTransitionAction<States, TestData>) methods::dontMove);
 
     rsm.postStateTransition(States.RUNNING, TestData.builder()
         .text("foo")

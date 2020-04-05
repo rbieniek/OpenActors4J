@@ -20,7 +20,7 @@ public class WeakActorInstanceStateTransition implements ActorInstanceStateTrans
   }
 
   @Override
-  public void transitionState(InstanceState desiredState) {
+  public void transitionState(final InstanceState desiredState) {
     Optional.ofNullable(reference.get())
         .ifPresent(instance -> instance.transitionState(desiredState));
   }

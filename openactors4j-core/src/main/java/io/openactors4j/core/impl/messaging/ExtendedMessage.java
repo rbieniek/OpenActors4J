@@ -16,6 +16,8 @@ import lombok.ToString;
 @Getter
 @ToString(callSuper = true)
 public class ExtendedMessage<T, V> extends Message<T> {
+  private final V extensionData;
+
   public ExtendedMessage(final RoutingSlip target, final SystemAddress sender,
                          final T payload, final V extensionData) {
     super(target, sender, payload);
@@ -27,6 +29,4 @@ public class ExtendedMessage<T, V> extends Message<T> {
                          final V extensionData) {
     this(target, sender, null, extensionData);
   }
-
-  private final V extensionData;
 }

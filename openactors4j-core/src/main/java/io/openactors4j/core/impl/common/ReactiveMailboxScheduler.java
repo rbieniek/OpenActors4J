@@ -26,14 +26,15 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
   private SchedulingSubscriber eventSubscriber;
 
   public void initialize() {
-    eventPublisher = new SubmissionPublisher<UUID>(executorService, Flow.defaultBufferSize());
+    eventPublisher = new SubmissionPublisher<>(executorService, Flow.defaultBufferSize());
 
     eventSubscriber = new SchedulingSubscriber(mailboxes);
     eventPublisher.subscribe(eventSubscriber);
   }
 
   @Override
-  public FlowControlledMailbox<Message<T>> registerMailbox(Mailbox<Message<T>> mailbox, MailboxSchedulerClient client) {
+  public FlowControlledMailbox<Message<T>> registerMailbox(final Mailbox<Message<T>> mailbox,
+                                                           final MailboxSchedulerClient client) {
     final UUID uuid = UUID.randomUUID();
     final WrappedMailbox<T> wrappedMailbox = new WrappedMailbox<>(eventPublisher,
         new SubmissionPublisher<>(executorService, Flow.defaultBufferSize()),
@@ -47,7 +48,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
   }
 
   @Override
-  public void deregisterMailbox(Mailbox<Message<T>> mailbox) {
+  public void deregisterMailbox(final Mailbox<Message<T>> mailbox) {
     if (mailbox instanceof WrappedMailbox) {
       mailboxes.remove(((WrappedMailbox<T>) mailbox).getUuid());
     }
@@ -60,14 +61,14 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     private Flow.Subscription subscription;
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(final Flow.Subscription subscription) {
       this.subscription = subscription;
 
       subscription.request(1);
     }
 
     @Override
-    public void onNext(UUID item) {
+    public void onNext(final UUID item) {
       Optional.ofNullable(mailboxes.get(item))
           .ifPresent(mailbox -> mailbox.getMailboxPublisher().submit(item));
 
@@ -75,7 +76,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     }
 
     @Override
-    public void onError(Throwable throwable) {
+    public void onError(final Throwable throwable) {
       log.error("Caught execption while processing schedule request", throwable);
     }
 
@@ -117,7 +118,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     }
 
     @Override
-    public void setOverflowHandler(MailboxOverflowHandler<Message<T>> handler) {
+    public void setOverflowHandler(final MailboxOverflowHandler<Message<T>> handler) {
       delegate.setOverflowHandler(handler);
     }
 
@@ -127,10 +128,10 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     }
 
     @Override
-    public void putMessage(Message<T> message) {
+    public void putMessage(final Message<T> message) {
       delegate.putMessage(message);
 
-      if(flowMode == ProcessMode.DELIVER) {
+      if (flowMode == ProcessMode.DELIVER) {
         schedulePublisher.submit(uuid);
       } else {
         backlog.add(uuid);
@@ -143,14 +144,15 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     }
 
     @Override
-    public void processMode(ProcessMode processMode) {
+    @SuppressWarnings({"PMD.AssignmentInOperand", "PMD.DataflowAnomalyAnalysis"})
+    public void processMode(final ProcessMode processMode) {
       this.flowMode = processMode;
       clientSubscriber.processMode(processMode);
 
-      if(processMode == ProcessMode.DELIVER) {
+      if (processMode == ProcessMode.DELIVER) {
         UUID pollValue;
 
-        while((pollValue = backlog.poll()) != null) {
+        while ((pollValue = backlog.poll()) != null) {
           schedulePublisher.submit(pollValue);
         }
       }
@@ -165,15 +167,15 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     private FlowControlledMailbox.ProcessMode flowMode = FlowControlledMailbox.ProcessMode.DELIVER;
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(final Flow.Subscription subscription) {
       this.subscription = subscription;
 
       subscription.request(1);
     }
 
     @Override
-    public void onNext(UUID item) {
-      if(flowMode == FlowControlledMailbox.ProcessMode.DELIVER) {
+    public void onNext(final UUID item) {
+      if (flowMode == FlowControlledMailbox.ProcessMode.DELIVER) {
         client.takeNextMessage();
       }
 
@@ -181,7 +183,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
     }
 
     @Override
-    public void onError(Throwable throwable) {
+    public void onError(final Throwable throwable) {
       log.error("Failed to deliver message to client", throwable);
     }
 
@@ -190,7 +192,7 @@ public class ReactiveMailboxScheduler<T> implements MailboxScheduler<T> {
 
     }
 
-    public void processMode(FlowControlledMailbox.ProcessMode processMode) {
+    public void processMode(final FlowControlledMailbox.ProcessMode processMode) {
       this.flowMode = processMode;
     }
   }

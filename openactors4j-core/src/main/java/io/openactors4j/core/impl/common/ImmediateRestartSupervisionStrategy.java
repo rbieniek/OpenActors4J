@@ -59,6 +59,7 @@ public class ImmediateRestartSupervisionStrategy implements SupervisionStrategyI
         break;
       default:
         instanceState = InstanceState.STOPPED;
+        break;
     }
 
     return instanceState;

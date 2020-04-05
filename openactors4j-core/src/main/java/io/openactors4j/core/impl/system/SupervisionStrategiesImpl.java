@@ -24,7 +24,7 @@ public class SupervisionStrategiesImpl implements SupervisionStrategies {
   }
 
   @Override
-  public SupervisionStrategy restart(int maxRestarts) {
+  public SupervisionStrategy restart(final int maxRestarts) {
     return new ImmediateRestartSupervisionStrategy(maxRestarts);
   }
 
@@ -90,7 +90,7 @@ public class SupervisionStrategiesImpl implements SupervisionStrategies {
   }
 
   @Override
-  public SupervisionStrategy delayedRestart(int maxRestarts,
+  public SupervisionStrategy delayedRestart(final int maxRestarts,
                                             final Duration restartPeriod,
                                             final Duration backoffPeriod,
                                             final int backoffFactor) {
