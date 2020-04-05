@@ -20,8 +20,14 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>io.openactors4j</groupId>
+                <artifactId>build-tools</artifactId>
+                <version>${openactors4j.version}</version>
+            </extension>
+        </extensions>
         <plugins>
-
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
