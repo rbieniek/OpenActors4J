@@ -1,0 +1,9 @@
+= Module overview
+
+This module contains shared rules for the following code quality tools.
+
+* *checksytle*
+* *PMD*
+* *Spotbugs*
+
+The is no concrete business conecpt or definition modeled into this module.

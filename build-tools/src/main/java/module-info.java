@@ -1,2 +1,2 @@
-module png.buildtools {
+module openactors4j.buildtools {
 }
