@@ -2,6 +2,7 @@
     <body>
         <menu name="Coverage">
             <item name="Overview" href="index.html"/>
+            <item name="Coverage report" href="jacoco-aggregate-all/index.html"/>
         </menu>
     </body>
 </project>

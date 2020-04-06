@@ -9,7 +9,7 @@ tbd
 == Actor instance
 
 The Actor instance is a generic management container for actor implementations.
-It is explained in detail here <<actor-instace#,Actor instance>>
+It is explained in detail here <<actor-instance#,Actor instance>>
 
 == Actor instance context
 

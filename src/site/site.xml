@@ -16,7 +16,7 @@
     </custom>
 
     <body>
-        <menu name="OAuth2 OpenID server">
+        <menu name="OpenActors4J">
             <item name="Overview" href="index.html"/>
             <item name="Introduction" href="intro.html"/>
         </menu>
