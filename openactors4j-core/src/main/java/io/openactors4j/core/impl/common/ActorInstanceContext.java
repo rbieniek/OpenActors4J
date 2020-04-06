@@ -7,6 +7,7 @@ import io.openactors4j.core.common.SystemAddress;
 import io.openactors4j.core.impl.messaging.Message;
 import io.openactors4j.core.typed.BehaviorBuilder;
 import io.openactors4j.core.untyped.UntypedActorBuilder;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
@@ -114,4 +115,11 @@ public interface ActorInstanceContext<T> {
    * @return an initialized {@link ActorRef}
    */
   ActorRef actorRefForAddress(SystemAddress address);
+
+  /**
+   * Get timeout allowed for actor actions like creation and signal processing
+   *
+   * @return
+   */
+  Duration actorTimeout();
 }

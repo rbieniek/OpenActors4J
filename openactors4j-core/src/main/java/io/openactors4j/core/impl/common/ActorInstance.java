@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow;
 import java.util.concurrent.SubmissionPublisher;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -313,10 +314,11 @@ public abstract class ActorInstance<V extends Actor, T> {
 
     this.actorContext = new ActorContextImpl(context);
 
-    CompletableFuture.anyOf(context.runAsync(() -> createEnclosedActor()))
+    context.runAsync(() -> createEnclosedActor())
+        .orTimeout(context.actorTimeout().toMillis(), TimeUnit.MILLISECONDS)
         .whenComplete((value, throwable) -> {
           publishActionEvent(ActorActionEventType.CREATE_INSTANCE, now,
-              determineOutcome(throwable));
+              determineOutcome((Throwable)throwable));
           transitionConditionallyOnException((Throwable) throwable,
               InstanceState.STARTING, InstanceState.CREATE_FAILED, updater);
         });
@@ -330,6 +332,7 @@ public abstract class ActorInstance<V extends Actor, T> {
     final ZonedDateTime now = ZonedDateTime.now().now();
 
     context.runAsync(() -> sendSignal(Signal.PRE_START))
+        .orTimeout(context.actorTimeout().toMillis(), TimeUnit.MILLISECONDS)
         .whenComplete((value, throwable) -> {
           publishSignalEvent(ActorSignalType.SIGNAL_PRE_START, now, determineOutcome((Throwable) throwable));
           transitionConditionallyOnException((Throwable) throwable,
@@ -344,8 +347,7 @@ public abstract class ActorInstance<V extends Actor, T> {
                                final ReactiveStateUpdater<InstanceState, ActorInstanceTransitionContext> updater,
                                final Optional<ActorInstanceTransitionContext> transitionContext) {
     final ZonedDateTime now = ZonedDateTime.now().now();
-
-    context.runAsync(() -> sendSignal(Signal.PRE_RESTART))
+    context.runAsync(() -> sendSignal(Signal.PRE_RESTART)).orTimeout(context.actorTimeout().toMillis(), TimeUnit.MILLISECONDS)
         .whenComplete((value, throwable) -> {
           publishSignalEvent(ActorSignalType.SIGNAL_PRE_RESTART, now, determineOutcome((Throwable) throwable));
           transitionConditionallyOnException((Throwable) throwable,
