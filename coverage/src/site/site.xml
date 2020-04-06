@@ -1,9 +1,7 @@
 <project>
     <body>
-        <menu name="Module build-tools">
+        <menu name="Coverage">
             <item name="Overview" href="index.html"/>
-            <item name="Introduction" href="intro.html"/>
         </menu>
-        <menu ref="reports"/>
     </body>
 </project>

@@ -443,7 +443,7 @@
                     </dependencies>
                     <executions>
                         <execution>
-                            <id>soptbugs-verify</id>
+                            <id>spotbugs-verify</id>
                             <phase>verify</phase>
                             <goals>
                                 <goal>check</goal>
@@ -473,9 +473,32 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
             </plugin>
 
+            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -494,6 +517,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -537,6 +561,7 @@
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>
+                        <inherited>false</inherited>
                         <reports>
                             <report>aggregate</report>
                             <report>test-aggregate</report>
@@ -555,8 +580,15 @@
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>
+                        <inherited>false</inherited>
                         <reports>
                             <report>aggregate-no-fork</report>
+                        </reports>
+                    </reportSet>
+                    <reportSet>
+                        <id>non-aggregate</id>
+                        <reports>
+                            <report>javadoc-no-fork</report>
                         </reports>
                     </reportSet>
                 </reportSets>
@@ -572,6 +604,18 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
+                <reportSets>
+                    <reportSet>
+                        <id>aggregate</id>
+                        <reports>
+                            <report>spotbugs</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
             </plugin>
         </plugins>
     </reporting>
