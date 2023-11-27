@@ -67,7 +67,7 @@
         <java.lib.micrometer>1.4.0</java.lib.micrometer>
         <java.lib.mockito.core>3.3.3</java.lib.mockito.core>
         <java.lib.opentracing>0.33.0</java.lib.opentracing>
-        <java.lib.plantuml>1.2020.2</java.lib.plantuml>
+        <java.lib.plantuml>1.2023.9</java.lib.plantuml>
         <java.lib.pmd>6.22.0</java.lib.pmd>
         <java.lib.slf4j>1.7.30</java.lib.slf4j>
         <java.lib.spotbugs>4.0.1</java.lib.spotbugs>
